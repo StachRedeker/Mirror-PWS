@@ -8,6 +8,7 @@ window_title = "Stock Market AI"
 window_width = 800
 window_height = 500
 background_color = "#091726"
+navbar_color = "#0e0926";
 
 with open("config.yaml") as config:
     data = load(config, Loader=FullLoader)
@@ -22,6 +23,8 @@ with open("config.yaml") as config:
 
     if "background_color" in data:
         background_color = data["background_color"]
+    if "navbar_color" in data:
+        navbar_color = data["navbar_color"]
 # endregion
 
 
@@ -36,10 +39,13 @@ def quit_app():
 canvas = tk.Canvas(root, height=window_height, width=window_width, bg=background_color)
 canvas.pack()
 
-frame = tk.Frame(root, bg="white")
-frame.place(relwidth=0.8, relheight=0.8, relx=0.1, rely=0.1)
+frame = tk.Frame(root, bg=background_color)
+frame.place(relwidth=1, relheight=1)
 
-quitApp = tk.Button(frame, text="Quit", padx=10, pady=5, fg="white", bg="#040f1a", command=quit_app)
+navbar = tk.Frame(root, bg=navbar_color)
+navbar.place(width=window_width * 0.2, relheight=1)
+
+quitApp = tk.Button(navbar, text="Quit", pady=5, padx=15, fg="white", bd=0, bg="#040f1a", command=quit_app)
 quitApp.pack()
 
 root.mainloop()

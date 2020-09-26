@@ -1,6 +1,7 @@
 window_title: "Stock Market AI Thing"
 
-start_window_height: 500
-start_window_width: 800
+start_window_height: 720
+start_window_width: 1280
 
 background_color: "#091726"
+navbar_color: "#0e0926"
