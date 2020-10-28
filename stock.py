@@ -18,12 +18,12 @@ class Utils:
             return None
 
 
-class Program:
+class StockProgram:
     # Waardes initialiseren
     def __init__(self):
         self.run = True
 
-        # Voor de volg-functie
+        # Voor de 'watch'-functie
         self.watching_tick = None
         self.watching_name = None
         self.watching_info = None
@@ -140,4 +140,4 @@ class Program:
                                                                   "commands.\n")
 
 
-Program().start()
+StockProgram().start()
