@@ -18,124 +18,126 @@ class Utils:
             return None
 
 
-class Programma:
+class Program:
     # Waardes initialiseren
     def __init__(self):
         self.run = True
 
         # Voor de volg-functie
-        self.follow = None
-        self.followName = None
-        self.followInfo = None
-        self.lastFollowUpdate = time.time()
-        self.lastFollowPrice = "0.00"
+        self.watching_tick = None
+        self.watching_name = None
+        self.watching_info = None
+        self.watching_last_update = time.time()
+        self.watching_last_price = "0.00"
 
     # Het programma wordt geactiveerd als dit runt.
     def start(self):
         while self.run:
-            if self.follow is not None:
-                if time.time() - self.lastFollowUpdate >= 5.0:
-                    self.lastFollowUpdate = self.lastFollowUpdate + 100
+            if self.watching_tick is not None:
+                if time.time() - self.watching_last_update >= 5.0:
+                    self.watching_last_update = self.watching_last_update + 100
                     self.getFollowed()
             else:
-                self.vraagCommando()
+                self.requestCommand()
 
     def getFollowed(self):
         # De geschiedenis van de prijs van de afgelopen 2 dagen.
-        history = self.follow.history(period="2d")
+        history = self.watching_tick.history(period="2d")
 
-        lastCloseFormatted = Utils.formatValue(history.get("Close")[0])
-        priceNowFormatted = Utils.formatValue(history.get("Close")[1])
+        price_last_close = Utils.formatValue(history.get("Close")[0])
+        price_now = Utils.formatValue(history.get("Close")[1])
 
-        lastCloseFloat = float(lastCloseFormatted)
-        newPriceFloat = float(priceNowFormatted)
-        oldPriceFloat = float(self.lastFollowPrice)
+        price_last_close_f = float(price_last_close)
+        price_now_f = float(price_now)
+        price_old_f = float(self.watching_last_price)
 
-        diffPrev = "~"
-        if newPriceFloat > oldPriceFloat:
-            diffPrev = "+" + Utils.formatValue(newPriceFloat - oldPriceFloat)
-        elif oldPriceFloat > newPriceFloat:
-            diffPrev = "-" + Utils.formatValue(oldPriceFloat - newPriceFloat)
+        diff_prev = "~"
+        if price_now_f > price_old_f:
+            diff_prev = "+" + Utils.formatValue(price_now_f - price_old_f)
+        elif price_old_f > price_now_f:
+            diff_prev = "-" + Utils.formatValue(price_old_f - price_now_f)
 
-        diffLastClose = "~"
-        if lastCloseFloat > newPriceFloat:
-            diffLastClose = "-" + Utils.formatValue(lastCloseFloat - newPriceFloat)
-        elif newPriceFloat > lastCloseFloat:
-            diffLastClose = "+" + Utils.formatValue(newPriceFloat - lastCloseFloat)
+        diff_close = "~"
+        if price_last_close_f > price_now_f:
+            diff_close = "-" + Utils.formatValue(price_last_close_f - price_now_f)
+        elif price_now_f > price_last_close_f:
+            diff_close = "+" + Utils.formatValue(price_now_f - price_last_close_f)
 
-        print("Huidige waarde " + self.followName + ": " + priceNowFormatted + " (" + diffPrev + " | " + diffLastClose + ")")
-        self.lastFollowUpdate = time.time()
-        self.lastFollowPrice = priceNowFormatted
+        print(
+            "\rCurrent value " + self.watching_name + ": " + price_now + " (" + diff_prev + " | " + diff_close + ")")
+        self.watching_last_update = time.time()
+        self.watching_last_price = price_now
 
-    def infoCommand(self, naam):
-        marktInfo = Utils.getMarketInformation(naam)
+    def infoCommand(self, name):
+        stock_info = Utils.getMarketInformation(name)
 
-        if marktInfo is not None:
+        if stock_info is not None:
             # De markt bestaat
-            titel = "================= Informatie " + naam + " ================="
+            titel = "================= Information " + name + " ================="
             print("\n" + titel + "\n")
-            print(" " + marktInfo["longName"] + " is een bedrijf uit de '" + marktInfo["sector"] + "' sector.")
-            print(" Het heeft ongeveer " + str(marktInfo["fullTimeEmployees"]) + " werknemers.")
-            print(" Op dit moment is is één aandeel " + Utils.formatValue(
-                stocks.Ticker(naam).history(period="1d").get("Close")[0]) + " " + marktInfo["currency"] + " waard.")
+            print(" " + stock_info["longName"] + " is a company in the " + stock_info["sector"] + " sector.")
+            print(" It has an estimated amount of " + str(stock_info["fullTimeEmployees"]) + " full-time employees.")
+            print(" At this time, one share is worth " + Utils.formatValue(
+                stocks.Ticker(name).history(period="1d").get("Close")[0]) + " " + stock_info["currency"] + ".")
             print("\n" + ("=" * len(titel)) + "\n")
         else:
             # De markt bestaat niet.
-            print("Die ticker komt me niet bekend voor. Is het goed gespeld?")
+            print("That ticker could not be recognised. Is it spelt correctly?")
 
-    def vraagCommando(self):
-        commandRaw = input("Voer je commando in.\n» ")
-        commandSplit = commandRaw.split(" ")
-        commandName = commandSplit[0].lower()
+    def requestCommand(self):
+        command_raw = input("Enter a command. ('help' for a list of commands)\n» ")
+        command_split = command_raw.split(" ")
+        command_name = command_split[0].lower()
 
-        arguments = commandSplit.copy()
+        arguments = command_split.copy()
         arguments.pop(0)
 
-        if commandName == "info":
+        if command_name == "info":
             if len(arguments) > 0:
-                marktNaam = arguments[0].upper()
+                stock_name = arguments[0].upper()
 
-                print("Informatie over " + marktNaam + " verkrijgen...")
-                self.infoCommand(marktNaam)
+                print("Fetching information about " + stock_name + "...")
+                self.infoCommand(stock_name)
                 return
             else:
-                print("Gebruik: info <ticker>")
+                print("Usage: info <ticker>")
                 return
-        elif commandName == "volg":
+        elif command_name == "watch":
             if len(arguments) > 0:
-                marktNaam = arguments[0].upper()
+                stock_name = arguments[0].upper()
 
-                print("Informatie over " + marktNaam + " verkrijgen...")
+                print("Fetching information about " + stock_name + "...")
 
-                marktInfo = Utils.getMarketInformation(marktNaam)
+                stock_info = Utils.getMarketInformation(stock_name)
 
-                if marktInfo is not None:
-                    print("Je volgt nu " + marktInfo["longName"] + ". (prijs in " + marktInfo["currency"] + ")")
-                    self.follow = stocks.Ticker(marktNaam)
-                    self.followName = marktNaam
-                    self.followInfo = marktInfo
-                    self.lastFollowPrice = "0.00"
+                if stock_info is not None:
+                    print("You are now watching " + stock_info["longName"] + ". (price in " + stock_info["currency"] + ")")
+                    self.watching_tick = stocks.Ticker(stock_name)
+                    self.watching_name = stock_name
+                    self.watching_info = stock_info
+                    self.watching_last_price = "0.00"
                 else:
-                    print("Die ticker komt me niet bekend voor. Is het goed gespeld?")
+                    print("That ticker could not be recognised. Is it spelt correctly?")
                 return
             else:
-                print("Gebruik: volg <ticker>")
+                print("Usage: watch <ticker>")
                 return
-        elif commandName == "quit" or commandName == "stop":
+        elif command_name == "quit" or command_name == "stop":
             self.run = False
-            print("Tot ziens!")
+            print("Goodbye!")
             return
-        elif commandName == "help":
-            print("\nBeschikbare commando's:")
-            print("- info <ticker> | Verkrijgt informatie over een markt.")
-            print("- volg <ticker> | Volg de prijs van een markt. Update elke 5 seconden.")
-            print("- stop | Verlaat het programma.")
-            print("- quit | Verlaat het programma.")
-            print("<...>: vereist, [...]: optioneel\n")
+        elif command_name == "help":
+            print("\nAvailable commands:")
+            print("- help | View this list of commands.")
+            print("- info <ticker> | View the information about a certain stock.")
+            print("- watch <ticker> | Watch a stock's price. Updates every 5 seconds.")
+            print("- stop | Stop the program.")
+            print("- quit | Stop the program.")
+            print("<...>: required, [...]: optional\n")
             return
         else:
-            print("Sorry, ik ken het commando \"" + commandName + "\" niet. Typ \"help\" voor een lijst met "
-                                                                  "commando's.\n")
+            print("The command \"" + command_name + "\" could not be recognised. Type \"help\" for a list of "
+                                                                  "commands.\n")
 
 
-Programma().start()
+Program().start()
