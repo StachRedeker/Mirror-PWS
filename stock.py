@@ -214,6 +214,14 @@ class StockProgram:
                 return
         elif command_name == "graph":
             if len(arguments) >= 2:
+                save = False
+                if len(arguments) >= 3:
+                    if arguments[2].lower() in ["true", "yes", "ja"]:
+                        save = True
+                    elif arguments[2].lower() not in ["false", "no", "nee"]:
+                        print("Argument \"" + arguments[2] + "\" invalid. \nOptions: True, False")
+                        return
+
                 ticker_name = arguments[0].upper()
                 period_name = arguments[1].upper()
 
@@ -259,6 +267,7 @@ class StockProgram:
                         prev = 0
                         for i in range(len(data_times)):
                             # Compleet niet nodig, maar het is leuker om naar te kijken dan dat het in 0.1s klaar is ;)
+                            # Hm, seems like a valid reason - Sander
                             time.sleep(0.01)
 
                             if math.isnan(data_closes[i]):
@@ -267,7 +276,9 @@ class StockProgram:
                             prev = data_closes[i]
 
                             print(
-                                "Generating a graph for " + name + " of the last " + graph_settings.label + " (" + graph_settings.period + ") with an interval of " + graph_settings.interval + "... [{0}%]      "
+                                "Generating a graph for " + name + " of the last " + graph_settings.label +
+                                " (" + graph_settings.period + ") with an interval of " + graph_settings.interval +
+                                "... [{0}%]      "
                                 .format(round(float(i) / float(len(data_times) - 1) * 100, 2)),
                                 end="\r", flush=True)
 
@@ -287,29 +298,32 @@ class StockProgram:
 
                         fig.autofmt_xdate()
 
-                        res = fig.savefig(save_dir)
+                        plt.show()
+
+                        if save:
+                            res = fig.savefig(save_dir)
+
+                            if res is None:
+                                file_path = os.path.realpath(__file__).split("\\")
+                                file_path.pop()
+                                print("\nGraph generated at \"{0}\"".format("/".join(file_path) + "/" + save_dir))
+                            else:
+                                print("An error occurred while generating the graph. Please try again. (" + str(res) + ")")
 
                         plt.close(fig)
-
-                        if res is None:
-                            print("\nGraph generated at \"{0}\"".format(save_dir))
-                        else:
-                            print("An error occured while generating the graph. Please try again. (" + str(res) + ")")
-
                         return
                     else:
                         print("That ticker could not be recognised. Is it spelt correctly?")
                         return
                 else:
                     print("Period \"" + period_name.lower() + "\" invalid."
-                                                              "\nOptions: " + str(periods).replace("[", "").replace("]",
-                                                                                                                    "").replace(
-                        "'", "").lower())
+                          "\nOptions: " + str(periods).replace("[", "")
+                          .replace("]","").replace("'", "").lower())
                     return
             else:
                 print("Usage: graph <ticker> <period>")
                 return
-        elif command_name == "quit" or command_name == "stop" or command_name == "exit":
+        elif command_name in ["quit", "stop", "exit"]:
             self.run = False
             print("Goodbye!")
             return
@@ -318,14 +332,14 @@ class StockProgram:
             print("- help | View this list of commands.")
             print("- info <ticker> | View the information about a certain stock.")
             print("- watch <ticker> | Watch a stock's price. Updates every 5 seconds.")
-            print("- graph <ticker> <period> | Generate a graph for a ticker.")
+            print("- graph <ticker> <period> [save] | Generate a graph for a ticker.")
             print("- watchlog | Toggles the logging style of the watch feature.")
             print("- stop,quit,exit | Stop the program.")
             print("<...>: required, [...]: optional\n")
             return
         else:
             print("The command \"" + command_name + "\" could not be recognised. Type \"help\" for a list of "
-                                                    "commands.\n")
+                  "commands.\n")
 
     def signal_handler(self, sig, frame):
         if self.watching_tick is not None:
