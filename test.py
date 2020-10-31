@@ -1,3 +1,10 @@
-from stock import Utils
+import sys
+import time
+from datetime import datetime
 
-print(Utils.getMarketInformation("MSFT"))
+while True:
+    time.sleep(1)
+    print("The time is: ", datetime.now().strftime("%H:%M:%S"))
+
+    sys.stdout.flush()
+

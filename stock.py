@@ -293,7 +293,7 @@ class StockProgram:
 
                         save_dir = "graphs/" + ticker_name + "_" + graph_settings.period + ".png"
 
-                        if not os.path.isdir("graphs"):
+                        if save and not os.path.isdir("graphs"):
                             os.makedirs("graphs")
 
                         fig.autofmt_xdate()
