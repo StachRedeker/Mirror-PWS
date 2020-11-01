@@ -4,6 +4,11 @@ body {
     padding: 0;
 }
 
+.container {
+    height: 100vh;
+    background-color: #356e78;
+}
+
 .top-bar {
     width: 100%;
     height: max-content;
@@ -61,7 +66,33 @@ body {
 
 .side-bar {
     height: 100%;
-    width: 20%;
+    width: 22%;
     background-color: #226371;
     margin: 0;
 }
+
+.side-bar .tickers {
+    display: grid;
+}
+
+.side-bar .tickers span {
+    padding: 5px;
+    margin: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-size: 1.1rem;
+
+    background-color: #094d5c;
+    transition-duration: 100ms;
+}
+
+.side-bar .tickers span:hover {
+    background-color: #127288;
+}
+
+.side-bar .app {
+    width: 22%;
+    position: absolute;
+    bottom: 0;
+}
+
