@@ -1,3 +1,67 @@
 body {
-    font-family: sans-serif;
+    font-family: "Oxygen Mono", sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.top-bar {
+    width: 100%;
+    height: max-content;
+    background-color: #063842;
+    margin: 0;
+
+    display: table;
+    table-layout: fixed;
+}
+
+.time, .balance, .change-balance {
+    color: white;
+    font-size: 1.2rem;
+    padding: 5px 10px;
+    margin: 0;
+
+    display: table-cell;
+}
+
+.change-balance {
+    text-align: left;
+}
+
+.change-balance button {
+    font-family: "Oxygen Mono", sans-serif;
+    background-color: #094d5c;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    font-size: 20px;
+    border-radius: 10px;
+    transition-duration: 100ms;
+    outline: none;
+}
+
+.change-balance button:hover {
+    background-color: #127288;
+    border-radius: 5px;
+}
+
+.change-balance button:active {
+    background-color: #249db8;
+}
+
+
+.time {
+    text-align: center;
+}
+
+.balance {
+    text-align: right;
+}
+
+
+
+.side-bar {
+    height: 100%;
+    width: 20%;
+    background-color: #226371;
+    margin: 0;
 }

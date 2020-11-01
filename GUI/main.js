@@ -1,4 +1,4 @@
-const {app, BrowserWindow} = require("electron");
+const { app, BrowserWindow } = require("electron");
 const url = require("url");
 const path = require("path");
 
@@ -19,10 +19,18 @@ function createWindow() {
     }));
 
     const python = require("child_process").spawn("python", ["../test.py"]);
-    python.stdout.on("data",function(data) {
-        console.log(data.toString())
-        homeWindow.webContents.send("setText", data.toString());
+    python.stdout.on("data", function(data) {
+        dataIn(data.toString());
     });
+}
+
+function dataIn(raw) {
+    const data = raw.split(" _ ");
+    switch (data[0]) {
+        case "time":
+            homeWindow.webContents.send("setTime", data[1]);
+            break;
+    }
 }
 
 app.on("ready", createWindow);

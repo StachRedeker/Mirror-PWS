@@ -2,9 +2,12 @@ import sys
 import time
 from datetime import datetime
 
-while True:
-    time.sleep(1)
-    print("The time is: ", datetime.now().strftime("%H:%M:%S"))
 
+def dataOut(key, data):
+    print(key, "_", data)
     sys.stdout.flush()
 
+
+while True:
+    time.sleep(0.1)
+    dataOut("time", datetime.now().strftime("%H:%M:%S"))

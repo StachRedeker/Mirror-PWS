@@ -1,9 +1,8 @@
 const electron = require("electron");
 const ipc = electron.ipcRenderer;
 
-const span = document.getElementById("msg");
+const time = document.getElementsByClassName("time")[0];
 
-ipc.on("setText", (_, text) => {
-    console.log(text)
-    span.innerHTML = text;
+ipc.on("setTime", (_, text) => {
+    time.innerHTML = "The current time is: " + text;
 });
