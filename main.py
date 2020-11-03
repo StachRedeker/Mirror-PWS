@@ -1,7 +1,13 @@
 import stock
+import invest
 
-while not input("Investeren of informeren?\n» ").lower() == "informeren":
-    pass
+inp = None
+while inp not in ["informeren", "investeren"]:
+    inp = input("Investeren of informeren?\n» ").lower()
 
-print("Running stock.py - StockProgram...")
-stock.StockProgram().start()
+if inp == "informeren":
+    print("Starten...\n")
+    stock.StockProgram().start()
+else:
+    print("Starten...\n")
+    invest.InvestProgram().start()
