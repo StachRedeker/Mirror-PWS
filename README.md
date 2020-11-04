@@ -1,4 +1,4 @@
 # PWS (:uk:)
 > Here some small introduction text about our project.
 
-#### Read the Dutch (:netherlands:) version of this document [here](/README-nl_NL.md). 
+#### Leed de Nederlandse (:netherlands:) versie van dit document [hier](/README-nl_NL.md). 

@@ -1,14 +1,22 @@
 body {
-    font-family: "Oxygen Mono", sans-serif;
+    font-family: "Oxygen", sans-serif;
     margin: 0;
     padding: 0;
+
+    overflow-y: hidden;
 }
+
+/* span.value {
+    font-family: "Oxygen Mono";
+} */
 
 .container {
     height: 100vh;
     background-color: #356e78;
 }
 
+
+/* #region Top Bar */
 .top-bar {
     width: 100%;
     height: max-content;
@@ -19,7 +27,7 @@ body {
     table-layout: fixed;
 }
 
-.time, .balance, .change-balance {
+.top-bar .time, .balance, .change-balance {
     color: white;
     font-size: 1.2rem;
     padding: 5px 10px;
@@ -33,7 +41,7 @@ body {
 }
 
 .change-balance button {
-    font-family: "Oxygen Mono", sans-serif;
+    font-family: "Oxygen", sans-serif;
     background-color: #094d5c;
     border: none;
     color: white;
@@ -53,7 +61,6 @@ body {
     background-color: #249db8;
 }
 
-
 .time {
     text-align: center;
 }
@@ -61,38 +68,211 @@ body {
 .balance {
     text-align: right;
 }
+/* #endregion */
 
-
-
+/* #region Side Bar */
 .side-bar {
     height: 100%;
-    width: 22%;
+    width: 20%;
     background-color: #226371;
     margin: 0;
+    
+    float: left;
 }
 
 .side-bar .tickers {
     display: grid;
 }
 
-.side-bar .tickers span {
-    padding: 5px;
+.side-bar .tickers div {
+    padding: 6px;
     margin: 5px 10px;
-    border-radius: 5px;
+    border-radius: 8px;
     color: white;
     font-size: 1.1rem;
 
     background-color: #094d5c;
     transition-duration: 100ms;
+    display: grid;
 }
 
-.side-bar .tickers span:hover {
+.side-bar .tickers div.active{
     background-color: #127288;
+    border-radius: 6px;
 }
+
+.side-bar .tickers div:hover {
+    background-color: #249db8;
+    border-radius: 4px;
+}
+
+
+
+.side-bar .tickers .info {
+    font-family: "Oxygen Mono", sans-serif;
+    color: lightgray;
+    font-size: 1rem;
+    text-align: right;
+}
+
 
 .side-bar .app {
-    width: 22%;
+    display: flex;
+    justify-content: space-around;
+
+    width: 20%;
+    height: 5%;
     position: absolute;
     bottom: 0;
+    padding-bottom: 8px;
 }
 
+.side-bar .app button {
+    width: 45%;
+
+    font-family: "Oxygen", sans-serif;
+    font-size: 19px;
+    letter-spacing: 1px;
+    color: white;
+
+    background-color: #094d5c;
+    border: none;
+    padding: 5px 10px 10px 10px;
+    border-radius: 10px;
+    transition-duration: 100ms;
+    outline: none;
+}
+
+.side-bar .app button:hover {
+    background-color: #127288;
+    border-radius: 5px;
+}
+
+.side-bar .app button:active {
+    background-color: #249db8;
+}
+/* #endregion */
+
+/* #region Main */
+.main {
+    width: 80%;
+    height: 100%;
+    margin-left: 20%;
+
+    display: grid;
+    grid-template-columns: 25% 75%;
+    grid-template-rows: 50% 50%;
+}
+
+
+.main .info {
+    margin: 5px;
+    padding: 10px;
+
+    border-radius: 10px;
+    background-color: #2d6875;
+
+    position: relative;
+}
+
+.main .info .worth {
+    font-size: 1.8vw;
+    color: white;
+}
+
+.main .info .converted {
+    font-size: 1.3vw;
+    color: lightgray;
+    font-weight: 300;
+}
+
+.main .info .status {
+    font-size: 1.8vw;
+    color: white;
+}
+
+.main .info .break {
+    height: 25%;
+}
+
+.main .info .status .closed {
+    color: rgb(255, 60, 60);
+}
+
+.main .info .status .open {
+    color: rgb(60, 255, 60);
+}
+
+.main .local-time {
+    position: absolute;
+    bottom: 0;
+    padding-bottom: 5px;
+
+    font-size: 1.8vw;
+    color: white;
+}
+
+.main .local-time .data span {
+    display: block;
+    color: lightgray;
+    font-family: "Oxygen Mono";
+    text-align: left;
+    font-size: 1.5vw;
+}
+
+
+
+.main .graph {
+    margin: 5px;
+    padding: 5px;
+
+    border-radius: 10px;
+    background-color: #2d6875;
+}
+
+.main .graph .select-range {
+    width: 100%;
+    
+    display: flex;
+    justify-content: space-around;
+}
+
+.main .graph .select-range button {
+    width: 13%;
+
+    font-family: "Oxygen", sans-serif;
+    background-color: #094d5c;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    font-size: 20px;
+    border-radius: 10px;
+    transition-duration: 100ms;
+    outline: none;
+}
+
+
+.main .graph .select-range button:hover, .main .graph .select-range button.active {
+    background-color: #127288;
+    border-radius: 5px;
+}
+
+.main .graph .select-range button:active, .main .graph .select-range button.active:hover {
+    background-color: #249db8;
+}
+
+.main .graph .select-range button.active:active {
+    background-color: #38b6d3;
+}
+
+
+.main .interact {
+    grid-column: 1 / -1;
+
+    margin: 5px;
+    padding: 5px;
+
+    border-radius: 10px;
+    background-color: #2d6875;
+}
+/* #endregion */
