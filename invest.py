@@ -94,6 +94,9 @@ class InvestProgram:
         elif command_name in ["buy", "b"]:
             self.commands.buy(arguments)
             return
+        elif command_name in ["sell", "s"]:
+            self.commands.sell(arguments)
+            return
         else:
             Utils.unknown_command(command_name)
             return
@@ -152,7 +155,7 @@ class Commands:
 
             if option in ["money", "count"]:
                 try:
-                    input_amt = float(int(input_amt))
+                    input_amt = float(input_amt)
                 except ValueError:
                     print("Error: <amount> must be a number.")
                     return
@@ -205,3 +208,52 @@ class Commands:
             pass
         else:
             print("Usage: buy <stock> <amount> <\'money\'/\'count\'>")
+
+    def sell(self, arguments):
+        # sell <stock> <amount> | Sell a stock (amount of stocks, not balance)
+        if len(arguments) >= 2:
+            stock_name = arguments[0].upper()
+            input_amt = arguments[1]
+
+            try:
+                input_amt = float(input_amt)
+            except ValueError:
+                print("Error: <amount> must be a number.")
+                return
+
+            if stock_name in self.program.equities:
+                owned_amt = self.program.equities[stock_name]
+                if input_amt >= owned_amt:
+                    input_amt = owned_amt
+
+                if input_amt <= 0:
+                    print("You must sell more than 0.")
+                    return
+
+                info = Utils.get_market_info(stock_name)
+
+                if info is not None:
+                    history = stocks.Ticker(stock_name).history("1d", "1m")
+                    close = history.get("Close")
+                    lastcost = math.nan
+                    attempt = 0
+
+                    while math.isnan(lastcost):
+                        attempt = attempt + 1
+                        lastcost = close[len(close) - attempt]
+
+                    value = float('{:.2f}'.format(input_amt * lastcost))
+
+                    if owned_amt == input_amt:
+                        del self.program.equities[stock_name]
+                    else:
+                        self.program.equities[stock_name] = self.program.equities[stock_name] - input_amt
+
+                    self.program.raw_balance = self.program.raw_balance + value
+                    print("Sold {0}x {1} for {2}.".format(input_amt, stock_name, value))
+                else:
+                    print("Failed to get stock information. Connection error?")
+            else:
+                print("You do not own any " + stock_name + ".")
+        else:
+            print("Usage: sell <stock> <amount>")
