@@ -51,7 +51,7 @@ function createWindow() {
     const mainMenu = Menu.buildFromTemplate(menuTemplate);
     Menu.setApplicationMenu(mainMenu);
 
-    const python = require("child_process").spawn("python", ["../test.py"]);
+    const python = require("child_process").spawn("python", ["../interface.py"]);
     python.stdout.on("data", function(data) {
         dataIn(data.toString());
     });

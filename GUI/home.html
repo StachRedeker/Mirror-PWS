@@ -7,6 +7,14 @@
         <link rel="stylesheet" type="text/css" href="home.css">
         <link href="https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap" rel="stylesheet"> 
         <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap" rel="stylesheet"> 
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+        <script>
+            window.$ = window.jQuery = require("jquery");
+        </script>
+
+        <script src="" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     </head>
     <body>
         <div class="container">
@@ -16,12 +24,14 @@
                 <div class="balance">Your balance: <span class="value">€0,00</span></div>
             </div>
             <div class="side-bar">
+                <div class="search-tickers"><input type="text" id="ticker-input" placeholder="Add ticker..."><button id="addTicker"></button></div>
+                <div><hr id="search-divider"></div>
                 <div class="tickers">
-                    <div><span class="title">Uber Technologies</span><span class="info">+5.32 | UBER</span></div>
-                    <div class="active"><span class="title">Alphabet</span><span class="info">+119.50 | GOOG</span></div>
-                    <div><span class="title">Biogen</span><span class="info">-2.30 | BIIB</span></div>
-                    <div><span class="title">Facebook</span><span class="info">+10.23 | &nbsp;&nbsp;FB</span></div>
-                    <div><span class="title">Lyft</span><span class="info">-42.13 | LYFT</span></div>
+                    <!-- <div><span class="title">Uber Technologies</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">+5.32 | UBER</span></div>
+                    <div class="active"><span class="title">Alphabet</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">+119.50 | GOOG</span></div>
+                    <div><span class="title">Biogen</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">-2.30 | BIIB</span></div>
+                    <div><span class="title">Facebook</span><span class="pin"><button class="active""></button></span><span class="info">+10.23 | &nbsp;&nbsp;FB</span></div>
+                    <div><span class="title">Lyft</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">-42.13 | LYFT</span></div> -->
                 </div>
                 <div class="app">
                     <button class="settings">Settings</button>
@@ -53,7 +63,9 @@
                         <button>Year</button>
                         <button>Max</button>
                     </div>
-                    grafiek
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
                 </div>
                 <div class="interact">
                     interactie gedoe
