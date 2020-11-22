@@ -16,7 +16,4 @@ price_now = history.get("Close")[1]
 
 print(Utils.format_money(price_now - price_last_close))
 
-# print(Utils.format_money(price_last_close - price_now))
-
-
 sys.stdout.flush()

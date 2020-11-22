@@ -168,10 +168,12 @@ body {
 
     display: grid;
     grid-template-rows: 50% 50%;
+
+    overflow: hidden;
 }
 
 .side-bar .tickers div.active{
-    background-color: #127288;
+    background-color: #0d7b94;
     border-radius: 6px;
 }
 
@@ -234,7 +236,7 @@ body {
     justify-content: space-around;
 
     width: 20%;
-    height: 5%;
+    height: 35px;
     position: absolute;
     bottom: 0;
     padding-bottom: 8px;
@@ -242,15 +244,16 @@ body {
 
 .side-bar .app button {
     width: 45%;
+    height: 35px;
 
     font-family: "Oxygen", sans-serif;
-    font-size: 19px;
+    font-size: 22px;
     letter-spacing: 1px;
     color: white;
 
     background-color: #094d5c;
     border: none;
-    padding: 5px 10px 10px 10px;
+    padding: 4px 10px 10px 10px;
     border-radius: 10px;
     transition-duration: 100ms;
     outline: none;
@@ -308,6 +311,10 @@ body {
     height: 25%;
 }
 
+.main .info .status .value {
+    color: rgb(170, 170, 170);
+}
+
 .main .info .status .closed {
     color: rgb(255, 60, 60);
 }
@@ -345,7 +352,7 @@ body {
 
 .main .graph .select-range {
     width: 100%;
-    height: 10%;
+    height: 30px;
 
     display: flex;
     justify-content: space-around;
@@ -353,13 +360,14 @@ body {
 
 .main .graph .select-range button {
     width: 13%;
+    height: 30px;
 
     font-family: "Oxygen", sans-serif;
     background-color: #094d5c;
     border: none;
     color: white;
-    padding: 2px 10px 10px 10px;
-    font-size: 20px;
+    padding: 1px 10px 10px 10px;
+    font-size: 20px;;
     border-radius: 10px;
     transition-duration: 100ms;
     outline: none;
