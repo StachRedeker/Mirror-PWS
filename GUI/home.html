@@ -21,47 +21,42 @@
             <div class="top-bar">
                 <div class="change-balance"><button>Change Balance</button></div>
                 <div class="time">The current time is: <span class="value">--:--:--</span></div>
-                <div class="balance">Your balance: <span class="value">€0,00</span></div>
+                <div class="balance">Your balance: <span class="value">0,00</span></div>
             </div>
             <div class="side-bar">
                 <div class="search-tickers"><input type="text" id="ticker-input" placeholder="Add ticker..."><button id="addTicker"></button></div>
                 <div><hr id="search-divider"></div>
                 <div class="tickers">
-                    <!-- <div><span class="title">Uber Technologies</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">+5.32 | UBER</span></div>
-                    <div class="active"><span class="title">Alphabet</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">+119.50 | GOOG</span></div>
-                    <div><span class="title">Biogen</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">-2.30 | BIIB</span></div>
-                    <div><span class="title">Facebook</span><span class="pin"><button class="active""></button></span><span class="info">+10.23 | &nbsp;&nbsp;FB</span></div>
-                    <div><span class="title">Lyft</span><span class="pin"><button id="LYFT-pin"></button></span><span class="info">-42.13 | LYFT</span></div> -->
                 </div>
                 <div class="app">
                     <button class="settings">Settings</button>
-                    <button class="quit">Quit</button>
+                    <button class="quit" id="quit">Quit</button>
                 </div>
             </div>
 
             <div class="main">
                 <div class="info">
-                    <div class="worth value">$100.000.000,00</div>
-                    <div class="converted">converted: <span class="value">€0,00</span></div>
+                    <div class="worth value">$0.00</div>
+                    <div class="converted">converted: <span class="value">€0.00</span></div>
                     <div class="break"></div>
                     <div class="status">Market Status: <span class="value">Unknown</span></div>
                     
                     <div class="local-time">
                         <div class="header">Local Time:</div>
                         <div class="data">
-                            <span class="date">1 January 2020</span>
-                            <span class="time">12:00 (GMT-5)</span>
+                            <span class="date">?? ??? ????</span>
+                            <span class="time">??:?? (EST-?)</span>
                         </div>
                     </div>
                 </div>
                 <div class="graph">
                     <div class="select-range">
-                        <button>Hour</button>
-                        <button class="active">Day</button>
-                        <button>Week</button>
-                        <button>Month</button>
-                        <button>Year</button>
-                        <button>Max</button>
+                        <button id="day" class="active">Day</button>
+                        <button id="week">Week</button>
+                        <button id="month">Month</button>
+                        <button id="6months">6 Months</button>
+                        <button id="year">Year</button>
+                        <button id="max">Max</button>
                     </div>
                     <div class="chart-container">
                         <canvas id="chart"></canvas>
@@ -72,6 +67,8 @@
                 </div>
             </div>
         </div>
+
+        <div class="popup" id="load-popup"><div class="panel"><span id="loading-text">&nbsp;&nbsp;&nbsp;Loading...</span></div></div>
 
         <script>
             require("./home.js")

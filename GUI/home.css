@@ -50,6 +50,8 @@ body {
     border-radius: 10px;
     transition-duration: 100ms;
     outline: none;
+
+    cursor: pointer;
 }
 
 .change-balance button:hover {
@@ -127,6 +129,8 @@ body {
     border-radius: 5px;
     transition-duration: 200ms;
     outline: none;
+
+    cursor: pointer;
 }
 
 .side-bar .search-tickers button:hover {
@@ -189,6 +193,32 @@ body {
     min-width: 0;
 }
 
+.side-bar .tickers .more {
+    text-align: right;
+}
+
+.side-bar .tickers .more button {
+    margin-right: 2px;
+    
+    height: 14px;
+    width: 14px;
+    border: none;
+    background-color: transparent;
+    background-image: url("more.png");
+    background-size: cover;
+    border-radius: 5px;
+    transition-duration: 100ms;
+    outline: none;
+
+    cursor: pointer;
+}
+
+.side-bar .tickers .more button:hover {
+    margin-right: 0;
+    height: 18px;
+    width: 18px;
+}
+
 .side-bar .tickers .pin {
     margin-top: 2px;
     grid-row: 2;
@@ -206,6 +236,8 @@ body {
     border-radius: 5px;
     transition-duration: 100ms;
     outline: none;
+
+    cursor: pointer;
 }
 
 .side-bar .tickers .pin button:hover {
@@ -217,7 +249,6 @@ body {
 .side-bar .tickers .pin button.active {
     background-image: url("pin-filled.png");
 }
-
 
 .side-bar .tickers .info {
     font-family: "Oxygen Mono", sans-serif;
@@ -257,6 +288,8 @@ body {
     border-radius: 10px;
     transition-duration: 100ms;
     outline: none;
+
+    cursor: pointer;
 }
 
 .side-bar .app button:hover {
@@ -317,10 +350,12 @@ body {
 
 .main .info .status .closed {
     color: rgb(255, 60, 60);
+    font-weight: bold;
 }
 
 .main .info .status .open {
     color: rgb(60, 255, 60);
+    font-weight: bold;
 }
 
 .main .local-time {
@@ -359,7 +394,7 @@ body {
 }
 
 .main .graph .select-range button {
-    width: 13%;
+    width: 15%;
     height: 30px;
 
     font-family: "Oxygen", sans-serif;
@@ -367,10 +402,12 @@ body {
     border: none;
     color: white;
     padding: 1px 10px 10px 10px;
-    font-size: 20px;;
+    font-size: 20px;
     border-radius: 10px;
     transition-duration: 100ms;
     outline: none;
+
+    cursor: pointer;
 }
 
 .main .graph .chart-container {
@@ -407,3 +444,34 @@ body {
     background-color: #2d6875;
 }
 /* #endregion */
+
+
+
+.popup {
+    position: absolute;
+    bottom: -20px;
+    text-align: center;
+    width: 100vw;
+    height: 20px;
+    transition-duration: 200ms;
+}
+
+.popup.active {
+    bottom: 20px;
+}
+
+.popup .panel {
+    margin: 0 30vw;
+    padding: 5px 0 25px 0;
+    height: 20px;
+
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+}
+
+.popup .panel span {
+    font-family: "Oxygen Mono";
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: white;
+} 

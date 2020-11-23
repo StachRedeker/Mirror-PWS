@@ -28,10 +28,10 @@ print(Utils.format_money(rates.convert(ticker.info["currency"], "EUR", value)))
 # Local Time
 timezone = pytz.timezone(ticker.info["exchangeTimezoneName"])
 print(datetime.now(timezone).strftime("%d %B %Y"))
-print("{0} ({1})".format(datetime.now(timezone).strftime("%H:%M"), datetime.now(timezone).strftime("%Z%z").replace("0", "")))
+print(datetime.now(timezone).strftime("%z").replace("0", ""))
 
 # Graph
-history = ticker.history(period="1d", interval="15m")
+history = ticker.history(period="1d", interval="1m")
 dateArrRaw = list(history.index.values)
 closeArr = []
 for i in history.index:

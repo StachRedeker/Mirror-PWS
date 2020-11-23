@@ -50,20 +50,6 @@ function createWindow() {
 
     const mainMenu = Menu.buildFromTemplate(menuTemplate);
     Menu.setApplicationMenu(mainMenu);
-
-    const python = require("child_process").spawn("python", ["../interface.py"]);
-    python.stdout.on("data", function(data) {
-        dataIn(data.toString());
-    });
-}
-
-function dataIn(raw) {
-    const data = raw.split(" _ ");
-    switch (data[0]) {
-        case "time":
-            homeWindow.webContents.send("setTime", data[1]);
-            break;
-    }
 }
 
 app.on("ready", createWindow);
