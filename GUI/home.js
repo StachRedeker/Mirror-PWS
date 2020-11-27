@@ -66,17 +66,21 @@ function addTicker(ticker) {
     }
     showLoading();
     PythonShell.run('../ticker-info.py', options,  function(err, results)  {
-        if (err) throw err;
-
-        const data = {
-            title: results[0],
-            ticker: ticker.toUpperCase(),
-            change: results[1].toString().charAt(0) == "-" ? results[1] : "+" + results[1]
-        };
-        tickers.set(ticker, data);
-        sortTickers();
-
-        hideLoading();
+        if (err) {
+            console.log(err);
+            sortTickers();
+            hideLoading();
+        } else {
+            const data = {
+                title: results[0],
+                ticker: ticker.toUpperCase(),
+                change: results[1].toString().charAt(0) == "-" ? results[1] : "+" + results[1]
+            };
+            tickers.set(ticker, data);
+            sortTickers();
+    
+            hideLoading();
+        }
     });
 }
 
@@ -382,3 +386,28 @@ function changeRange(range) {
         }, 500);
     }
 }
+
+$("#manual-input").on("input", function () {
+    const input = $(this);
+    input.val(input.val().match(/[\d,.]/g).join(""));
+});
+
+$("#manual-input").on("mouseenter", function () {
+    const input = $(this);
+    const split = input.val().split(".");
+    let decimal = "";
+    if(split[0] != null && split[1] != null) {
+        let i = split[1].length;
+        while(i--) {
+            const char = split[1].charAt(i);
+            if(char !== "0")
+                decimal += split[1].slice(0, i + 1);
+        }
+    }
+    input.val(split[0].match(/[\d]/g).join("") + (decimal == "" ? "" : "." + decimal.slice(0, 2)));
+});
+
+$("#manual-input").on("mouseleave", function () {
+    const input = $(this);
+    input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
+});
