@@ -1,14 +1,17 @@
-const { app } = require("electron");
+const { app, ipcRenderer } = require("electron");
 const electron = require("electron");
 const ipc = electron.ipcRenderer;
+const fs = require("fs");
 let { PythonShell } = require('python-shell')
 
+//TODO: Add pinned to config
+
+//#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2
 })
-
 
 let balance = 0;
 function setBal(bal) {
@@ -16,24 +19,17 @@ function setBal(bal) {
     $(".balance .value").html(EUR.format(bal));
 }
 
-setBal(100);
+setBal(0);
+//#endregion
 
-const time = document.getElementsByClassName("time")[0].getElementsByClassName("value")[0];
-
+//#region Update Time
 setInterval(() => {
     const date = new Date();
     $(".time .value").html(date.getHours() + ":" + (date.getMinutes() < 10 ? "0" : "") + date.getMinutes() + ":" + (date.getSeconds() < 10 ? "0" : "") +  date.getSeconds());
 }, 1000);
+//#endregion
 
-const junkData = [[], []];
-let last = 25;
-for (let i = 0; i < 50; i++) {
-    junkData[0][i] = i;
-    const rand = Math.floor(Math.random() * 201);
-    junkData[1][i] = (rand + last) / 2;
-    last = rand;
-}
-
+//#region Initialize Chart
 const ctx = document.getElementById("chart").getContext("2d");
 const chart = new Chart(ctx, {
     type: 'line',
@@ -47,17 +43,27 @@ const chart = new Chart(ctx, {
         }
     }
 });
+//#endregion
 
-const tempTickers = ["TSLA", "UBER", "FB", "GOOG", "SU"];
+//#region Tickers General
+//Load tickers from config
 $(() => {
-    tempTickers.forEach(ticker => {
-        addTicker(ticker);
-    });
-
-    $("#addTicker").on("click", function() {
-        addTicker($("#ticker-input").val());
-        $("#ticker-input").val("");
-    });
+    try {
+        if(fs.existsSync("./config.json")) {
+            fs.readFile("./config.json", (err, data) => {
+                if(err) throw err;
+                const config = JSON.parse(data);
+                config["tickers"].forEach(ticker => {
+                    addTicker(ticker);
+                });
+            });
+        }
+    } catch (err) {
+        fs.writeFile("./config.json", "{}", (err) => {
+            if(err) throw err;
+            console.log("New config file created.");
+        });
+    }
 });
 
 function addTicker(ticker) {
@@ -80,6 +86,9 @@ function addTicker(ticker) {
             sortTickers();
     
             hideLoading();
+
+            const config = { tickers: Array.from(tickers.keys()) };
+            fs.writeFileSync("./config.json", JSON.stringify(config));
         }
     });
 }
@@ -87,8 +96,55 @@ function addTicker(ticker) {
 function removeTicker(ticker) {
     tickers.delete(ticker);
     sortTickers();
+
+    const config = { tickers: Array.from(tickers.keys()) };
+    fs.writeFileSync("./config.json", JSON.stringify(config));
 }
 
+function sortTickers() {
+    tickers.forEach((data, _) => {
+        if(data.ticker.length > maxLength)
+            maxLength = data.ticker.length;
+    });
+
+    const container = $(".side-bar .tickers");
+    let content = "";
+
+    pinnedTickers.forEach(ticker => {
+        const data = tickers.get(ticker);
+        if(data != undefined)
+            content += `<img id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></img>`;
+    });
+    tickers.forEach((data, ticker) => {
+        if(!pinnedTickers.includes(ticker)) {
+            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
+        }
+    });
+
+    container.html(content);
+}
+
+let maxLength = 0;
+function equalSpacing(input) {
+    return "&nbsp;".repeat(maxLength - input.length) + input;
+}
+
+$("#addTicker").on("click", () => {
+    const input = $("#ticker-input");
+    addTicker(input.val());
+    input.val("");
+});
+
+$("#ticker-input").on("keypress", function(e) {
+    const keyCode = e.keyCode || e.which;
+    if(keyCode == 13) {
+        addTicker($(this).val());
+        $(this).val("");
+    }
+});
+//#endregion
+
+//#region Tickers Interaction
 let overlapQueue = 0;
 let selectedTicker = "";
 $(".tickers").on("click", "div", function() {
@@ -112,7 +168,6 @@ $(".tickers").on("click", "div", function() {
     }, 100);
 });
 
-
 const tickers = new Map();
 const pinnedTickers = [];
 $(".tickers").on("click", ".pin button", function() {
@@ -132,41 +187,43 @@ $(".tickers").on("click", ".pin button", function() {
     sortTickers();
 });
 
+const activeDropdowns = new Map();
 $(".tickers").on("click", ".more button", function() {
     overlapQueue++;
     setTimeout(() => {
         overlapQueue--;
     }, 200);
+
+    const ticker = $(this).parent().parent().attr("id");
+    if(activeDropdowns.has(ticker)) {
+        activeDropdowns.get(ticker).remove();
+        activeDropdowns.delete(ticker);
+    } else {
+        const btn = $(this);
+    
+        let elem = document.createElement("div");
+        elem.setAttribute("style", `
+            position: absolute; 
+            top: ${btn.position().top + btn.height()}px;
+            left: ${btn.position().left}px;
+            height: "max-content";
+            width: "max-content";`);
+        elem.setAttribute("class", "dropdown more");
+        
+        elem.innerHTML = `<div class="img"></div><button class="dropdown-more-button" id="${ticker}">Delete</button>`;
+    
+        $(".container").append(elem);
+        activeDropdowns.set(ticker, elem);
+    }
 });
 
-function sortTickers() {
-    tickers.forEach((data, _) => {
-        if(data.ticker.length > maxLength)
-            maxLength = data.ticker.length;
-    });
+$(".container").on("click", ".dropdown-more-button", function() {
+    removeTicker($(this).attr("id"));
+    $(this).parent().remove();
+});
+//#endregion
 
-    const container = $(".side-bar .tickers");
-    let content = "";
-
-    pinnedTickers.forEach(ticker => {
-        const data = tickers.get(ticker);
-        if(data != undefined)
-            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
-    });
-    tickers.forEach((data, ticker) => {
-        if(!pinnedTickers.includes(ticker)) {
-            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
-        }
-    });
-
-    container.html(content);
-}
-
-let maxLength = 0;
-function equalSpacing(input) {
-    return "&nbsp;".repeat(maxLength - input.length) + input;
-}
-
+//#region Info Section
 let timeOffset;
 let detailedGraphFetch;
 let rangeData = new Map();
@@ -302,46 +359,7 @@ function loadFullGraphData(ticker) {
 }
 
 updateInfo();
-
-let queue = 0;
-let anim; let animStage = 0;
-function showLoading() {
-    queue++;
-
-    $("#load-popup").addClass("active");
-
-    clearInterval(anim);
-    anim = setInterval(function() {
-        switch (animStage) {
-            case 1:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading" + "&nbsp;".repeat(3));
-                break;
-            case 2:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading." + "&nbsp;".repeat(2));
-                break;
-            case 3:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading.." + "&nbsp;");
-                break;
-            default:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading...");
-                break;
-        }
-
-        if(animStage < 3)
-            animStage++;
-        else
-            animStage = 0;
-    }, 500);
-}
-
-function hideLoading() {
-    queue--;
-
-    if(queue == 0) {
-        $("#load-popup").removeClass("active");
-        clearInterval(anim);
-    }
-}
+//#endregion
 
 $(".select-range").on("click", "button", function() {
     const btn = $(this);
@@ -411,3 +429,81 @@ $("#manual-input").on("mouseleave", function () {
     const input = $(this);
     input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
 });
+
+$(".top-bar .change-balance").on("click", "button", function() {
+    if(activeDropdowns.has("change-bal")) {
+        activeDropdowns.get("change-bal").remove();
+        activeDropdowns.delete("change-bal");
+    } else {
+        const btn = $(this);
+    
+        let elem = document.createElement("div");
+        elem.setAttribute("style", `
+            position: absolute; 
+            top: ${btn.position().top + btn.height()}px;
+            left: ${btn.position().left}px;
+            height: "max-content";
+            width: "max-content";`);
+        elem.setAttribute("class", "dropdown change-bal");
+        
+        elem.innerHTML = `<input class="dropdown-change-balance" id="change-bal"/><button class="img" id="confirm-change-bal"></button>`;
+    
+        $(".container").append(elem);
+        activeDropdowns.set("change-bal", elem);
+    }
+});
+
+$(".container").on("click", "#confirm-change-bal", function() {
+    setBal(Number($("#change-bal").val()));
+
+    if(activeDropdowns.has("change-bal")) {
+        activeDropdowns.get("change-bal").remove();
+        activeDropdowns.delete("change-bal");
+    }
+});
+
+$("#quit").on("click", function() {
+    ipcRenderer.send("request-quit");
+});
+
+//#region Load Popup
+let queue = 0;
+let anim; let animStage = 0;
+function showLoading() {
+    queue++;
+
+    $("#load-popup").addClass("active");
+
+    clearInterval(anim);
+    anim = setInterval(function() {
+        switch (animStage) {
+            case 1:
+                $("#loading-text").html("&nbsp;".repeat(3) + "Loading" + "&nbsp;".repeat(3));
+                break;
+            case 2:
+                $("#loading-text").html("&nbsp;".repeat(3) + "Loading." + "&nbsp;".repeat(2));
+                break;
+            case 3:
+                $("#loading-text").html("&nbsp;".repeat(3) + "Loading.." + "&nbsp;");
+                break;
+            default:
+                $("#loading-text").html("&nbsp;".repeat(3) + "Loading...");
+                break;
+        }
+
+        if(animStage < 3)
+            animStage++;
+        else
+            animStage = 0;
+    }, 500);
+}
+
+function hideLoading() {
+    queue--;
+
+    if(queue == 0) {
+        $("#load-popup").removeClass("active");
+        clearInterval(anim);
+    }
+}
+//#endregion

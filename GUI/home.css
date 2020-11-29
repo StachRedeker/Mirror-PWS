@@ -615,3 +615,92 @@ body {
     font-size: 1.1rem;
     color: white;
 }
+
+.dropdown.more, .dropdown.change-bal {
+    margin-top: 5px;
+
+    display: grid;
+    grid-template-columns: auto auto;
+
+    background-color: #063a46;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.dropdown.more .img {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background-color: transparent;
+    background-image: url("close.png");
+    background-size: cover;
+
+    margin-right: 5px;
+
+    outline: none;
+}
+
+.dropdown.more button {
+    background-color: #0b5464;
+
+    font-size: 1rem;
+
+    color: white;
+
+    border-radius: 5px;
+    padding: 2px 5px;
+
+    border: none;
+    outline: none;
+}
+
+.dropdown.more button:hover {
+    background-color: #127288;
+}
+
+.dropdown.more button:active {
+    background-color: #249db8;
+}
+
+.dropdown.change-bal input {
+    background-color: #0b5464;
+
+    font-size: 1.1rem;
+
+    color: white;
+
+    border-radius: 5px;
+    padding: 2px 5px;
+
+    border: none;
+    outline: none;
+}
+
+.dropdown.change-bal button {
+    margin-left: 5px;
+
+    color: blue;
+
+    width: 25px;
+    height: 25px;
+    border: none;
+    background-color: transparent;
+    background-image: url("check-mark.png");
+    background-size: cover;
+
+    margin-right: 5px;
+
+    outline: none;
+
+    cursor: pointer;
+
+    transition-duration: 100ms;
+}
+
+.dropdown.change-bal button:hover {
+    background-image: url("check-mark-2.png");
+}
+
+.dropdown.change-bal button:active {
+    background-image: url("check-mark-3.png");
+}
