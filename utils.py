@@ -19,6 +19,10 @@ class Utils:
         return '{:,.2f}'.format(value)
 
     @staticmethod
+    def format_money_decimal(value):
+        return '{:.2f}'.format(value)
+
+    @staticmethod
     def get_market_info(name):
         try:
             return stocks.Ticker(name).info

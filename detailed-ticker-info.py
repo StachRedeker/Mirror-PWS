@@ -34,8 +34,12 @@ print(datetime.now(timezone).strftime("%z").replace("0", ""))
 history = ticker.history(period="1d", interval="1m")
 dateArrRaw = list(history.index.values)
 closeArr = []
+splitArr = []
+dividendsArr = []
 for i in history.index:
-    closeArr.append(Utils.format_money(history.get("Close")[i]))
+    closeArr.append(Utils.format_money_decimal(history.get("Close")[i]))
+    splitArr.append(str(history.get("Stock Splits")[i]))
+    dividendsArr.append(str(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
@@ -43,5 +47,7 @@ for raw in dateArrRaw:
 
 print("|".join(dateArr))
 print("|".join(closeArr))
+print("|".join(splitArr))
+print("|".join(dividendsArr))
 
 sys.stdout.flush()

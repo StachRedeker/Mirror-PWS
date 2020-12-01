@@ -4,6 +4,9 @@ const ipc = electron.ipcRenderer;
 const fs = require("fs");
 let { PythonShell } = require('python-shell')
 
+// TODO: auto install libraries (med prio)
+// TODO: add tickers to graph (low prio)
+
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
     style: "currency",
@@ -295,11 +298,14 @@ function updateInfo() {
                 converted: results[3],
                 localDate: results[4],
                 offset: parseInt(results[5]),
-                graphDate: results[6].split("|"),
-                graphValue: results[7].split("|")
+                graphDate: results[6],
+                graphValue: results[7],
+                graphSplits: results[8],
+                graphDividends: results[9]
             };
 
-            rangeData.set("day", [data.graphDate, data.graphValue]);
+            const dayData = sortGraphData(data.graphDate, data.graphValue, data.graphSplits, data.graphDividends)
+            rangeData.set("day", dayData);
             rangeLabel = data.title;
 
             clearInterval(timeOffset);
@@ -308,7 +314,6 @@ function updateInfo() {
                 const date = new Date();
                 $(".local-time .data .time").html(`${date.getHours() - 1 + data.offset}:${(date.getMinutes() < 10 ? "0" : "") + date.getMinutes()} (EST${data.offset >= 0 ? "+" + data.offset : data.offset})`);
             }, 1000);
-
 
             $(".main .info").html(`<div class="worth value">${data.symbol}${data.value}</div>
                 <div class="converted">converted: <span class="value">€${data.converted}</span></div>
@@ -324,12 +329,22 @@ function updateInfo() {
                 </div>`);
 
             chart.data = {
-                labels: data.graphDate,
+                labels: dayData[0],
                 datasets: [{
-                    label: data.title,
+                    label: rangeLabel,
                     borderColor: 'rgb(0, 200, 100)',
-                    data: data.graphValue,
+                    data: dayData[1],
                     backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                }, {
+                    label: "Dividends",
+                    borderColor: 'rgb(200, 200, 0)',
+                    data: dayData[2],
+                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                }, {
+                    label: "No Data",
+                    borderColor: 'rgb(200, 0, 0)',
+                    data: dayData[3],
+                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
                 }]
             };
             chart.update();
@@ -348,38 +363,65 @@ function loadFullGraphData(ticker) {
         if(results == null)
             return;
         
-        for (let i = 0; i < results.length; i += 2) {
-            const range = ranges[i / 2];
-            const dateArray = results[i].split("|");
-            const valueArray = results[i + 1].split("|");
-            const closedArray = [];
-        
-            for (let i = 0; i < valueArray.length; i++) {
-                const value = valueArray[i]
-                if(isNaN(value)) {
-                    if(!isNaN(valueArray[i - 1])) {
-                        closedArray.pop();
-                        closedArray.push(valueArray[i - 1]);
-                    }
-
-                    for (let j = i; j > 0; j--) {
-                        if(!isNaN(valueArray[j])) {
-                            closedArray.push(valueArray[j]);
-                            break;
-                        }
-                    }
-
-                    if(!isNaN(valueArray[i + 1])) {
-                        closedArray.push(valueArray[i + 1]);
-                    }
-                } else {
-                    closedArray.push(null);
-                }
-            }
-
-            rangeData.set(range, [dateArray, valueArray, closedArray]);
+        for (let i = 0; i < results.length; i += 4) {
+            const range = ranges[i / 4];
+            
+            rangeData.set(range,  sortGraphData(results[i], results[i + 1], results[i + 2], results[i + 3]));
         }
     });
+}
+
+function sortGraphData(rawDates, rawValues, rawSplits, rawDividends) {
+    const dateArray = rawDates.split("|");
+    const valueArray = rawValues.split("|");
+    const splitArray = rawSplits.split("|");
+    const dividendsInput = rawDividends.split("|");
+    const dividendsArray = [];
+    const closedArray = [];
+
+    for (let i = 0; i < valueArray.length; i++) {
+        const value = valueArray[i]
+        if(isNaN(value)) {
+            if(parseFloat(splitArray[i]) !== 0) {
+                for (let j = i; j > 0; j--) {
+                    if(!isNaN(valueArray[j])) {
+                        valueArray[i] = valueArray[j];
+                        break;
+                    }
+                }
+            } else if(parseFloat(dividendsInput[i]) !== 0) {
+                if(!isNaN(valueArray[i - 1])) {
+                    dividendsArray[i - 1] = valueArray[i - 1];
+                }
+
+                for (let j = i; j > 0; j--) {
+                    if(!isNaN(valueArray[j])) {
+                        dividendsArray[i] = valueArray[j];
+                        break;
+                    }
+                }
+            } else {
+                if(!isNaN(valueArray[i - 1])) {
+                    closedArray[i - 1] = valueArray[i - 1];
+                }
+
+                for (let j = i; j > 0; j--) {
+                    if(!isNaN(valueArray[j])) {
+                        closedArray[i] = valueArray[j];
+                        break;
+                    }
+                }
+            }
+        } else if(i > 1 && isNaN(valueArray[i - 1])) {
+            if(closedArray[i - 1] != null) {
+                closedArray[i] = valueArray[i];
+            } else if(dividendsArray[i - 1] != null) {
+                dividendsArray[i] = valueArray[i];
+            }
+        }
+    }
+
+    return [dateArray, valueArray, dividendsArray, closedArray];
 }
 
 updateInfo();
@@ -409,9 +451,14 @@ function changeRange(range) {
                 data: data[1],
                 backgroundColor: 'rgba(0, 100, 0, 0.1)'
             }, {
-                label: "Closed",
-                borderColor: 'rgb(200, 0, 0)',
+                label: "Dividends",
+                borderColor: 'rgb(200, 200, 0)',
                 data: data[2],
+                backgroundColor: 'rgba(200, 200, 0, 0.2)'
+            }, {
+                label: "No Data",
+                borderColor: 'rgb(200, 0, 0)',
+                data: data[3],
                 backgroundColor: 'rgba(200, 0, 0, 0.2)'
             }]
         };
