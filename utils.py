@@ -1,3 +1,5 @@
+import math
+
 import yfinance as stocks
 
 
@@ -48,3 +50,19 @@ class Utils:
             return info["longName"]
         else:
             return ticker_name
+
+    @staticmethod
+    def clean_up_data(data):
+        prev = 0
+        for i in range(len(data)):
+            if math.isnan(data.get("Close")[i]):
+                data_closes[i] = prev
+
+            prev = data_closes[i]
+
+            print(
+                "Generating a graph for " + name + " of the last " + graph_settings.label +
+                " (" + graph_settings.period + ") with an interval of " + graph_settings.interval +
+                "... [{0}%]      "
+                .format(round(float(i) / float(len(data_times) - 1) * 100, 2)),
+                end="\r", flush=True)
