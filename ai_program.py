@@ -224,7 +224,7 @@ def main(genomes, config):
         for pair in money:
             dates.append(pair[0])
             moneyz.append(pair[1])
-            percentages.append(math.floor((pair[1]/START_BALANCE * 100)*100)/100)
+            percentages.append((math.floor((pair[1]/START_BALANCE * 100)*100)/100-100))
 
         graph(dates, moneyz, "balance")
         graph(dates, percentages, "percentage")
