@@ -4,8 +4,6 @@ const ipc = electron.ipcRenderer;
 const fs = require("fs");
 let { PythonShell } = require('python-shell')
 
-//TODO: Add pinned to config
-
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
     style: "currency",
@@ -29,6 +27,51 @@ setInterval(() => {
 }, 1000);
 //#endregion
 
+//#region Config
+let configData = {};
+
+//Startup Initialization/Data Getting etc.
+$(() => {
+    try {
+        if(fs.existsSync("./config.json")) {
+            fs.readFile("./config.json", (err, data) => {
+                if(err) throw err;
+
+                configData = JSON.parse(data);
+
+                loadConfigData();
+            });
+        }
+    } catch (err) {
+        fs.writeFile("./config.json", "{}", (err) => {
+            if(err) throw err;
+            console.log("New config file created.");
+        });
+    }
+});
+
+function loadConfigData() {
+    getConfig("tickers", "array").forEach(ticker => {
+        addTicker(ticker);
+    });
+
+    pinnedTickers.push(...getConfig("pinned", "array"));
+}
+
+function setConfig(key, data) {
+    configData[key] = data;
+    fs.writeFileSync("./config.json", JSON.stringify(configData));
+}
+
+function getConfig(key, type) {
+    if(type === "array") {
+        return configData[key] == null ? [] : configData[key];
+    } else {
+        return configData[key];
+    }
+}
+//#endregion
+
 //#region Initialize Chart
 const ctx = document.getElementById("chart").getContext("2d");
 const chart = new Chart(ctx, {
@@ -46,26 +89,6 @@ const chart = new Chart(ctx, {
 //#endregion
 
 //#region Tickers General
-//Load tickers from config
-$(() => {
-    try {
-        if(fs.existsSync("./config.json")) {
-            fs.readFile("./config.json", (err, data) => {
-                if(err) throw err;
-                const config = JSON.parse(data);
-                config["tickers"].forEach(ticker => {
-                    addTicker(ticker);
-                });
-            });
-        }
-    } catch (err) {
-        fs.writeFile("./config.json", "{}", (err) => {
-            if(err) throw err;
-            console.log("New config file created.");
-        });
-    }
-});
-
 function addTicker(ticker) {
     const options = {
         args: [ticker]
@@ -87,8 +110,7 @@ function addTicker(ticker) {
     
             hideLoading();
 
-            const config = { tickers: Array.from(tickers.keys()) };
-            fs.writeFileSync("./config.json", JSON.stringify(config));
+            setConfig("tickers", Array.from(tickers.keys()));
         }
     });
 }
@@ -97,8 +119,7 @@ function removeTicker(ticker) {
     tickers.delete(ticker);
     sortTickers();
 
-    const config = { tickers: Array.from(tickers.keys()) };
-    fs.writeFileSync("./config.json", JSON.stringify(config));
+    setConfig("tickers", Array.from(tickers.keys()));
 }
 
 function sortTickers() {
@@ -113,11 +134,11 @@ function sortTickers() {
     pinnedTickers.forEach(ticker => {
         const data = tickers.get(ticker);
         if(data != undefined)
-            content += `<img id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></img>`;
+            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
     });
     tickers.forEach((data, ticker) => {
         if(!pinnedTickers.includes(ticker)) {
-            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
+            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
         }
     });
 
@@ -181,9 +202,12 @@ $(".tickers").on("click", ".pin button", function() {
         btn.removeClass("active");
         pinnedTickers.splice(pinnedTickers.indexOf(btn.attr("id")), 1);
     } else {
-        pinnedTickers.push(btn.attr("id"))
+        pinnedTickers.push(btn.attr("id").split("-")[0])
         btn.addClass("active");
     }
+
+    setConfig("pinned", pinnedTickers);
+
     sortTickers();
 });
 
@@ -223,7 +247,7 @@ $(".container").on("click", ".dropdown-more-button", function() {
 });
 //#endregion
 
-//#region Info Section
+//#region Info/Graph Section
 let timeOffset;
 let detailedGraphFetch;
 let rangeData = new Map();
@@ -359,7 +383,6 @@ function loadFullGraphData(ticker) {
 }
 
 updateInfo();
-//#endregion
 
 $(".select-range").on("click", "button", function() {
     const btn = $(this);
@@ -404,7 +427,9 @@ function changeRange(range) {
         }, 500);
     }
 }
+//#endregion
 
+//#region Manual Input
 $("#manual-input").on("input", function () {
     const input = $(this);
     input.val(input.val().match(/[\d,.]/g).join(""));
@@ -429,7 +454,9 @@ $("#manual-input").on("mouseleave", function () {
     const input = $(this);
     input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
 });
+//#endregion
 
+//#region Top Bar
 $(".top-bar .change-balance").on("click", "button", function() {
     if(activeDropdowns.has("change-bal")) {
         activeDropdowns.get("change-bal").remove();
@@ -461,6 +488,7 @@ $(".container").on("click", "#confirm-change-bal", function() {
         activeDropdowns.delete("change-bal");
     }
 });
+//#endregion
 
 $("#quit").on("click", function() {
     ipcRenderer.send("request-quit");
