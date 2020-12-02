@@ -557,6 +557,19 @@ body {
     background-color: #249db8;
 }
 
+.interact .manual .manual-input-error {
+    text-align: center;
+
+    margin: 0 10px;
+    border-radius: 10px;
+
+    background-color: #094d5c;
+    color: rgb(255, 60, 60);
+
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
 .log .delta {
     background-color: #094d5c;
     color: white;

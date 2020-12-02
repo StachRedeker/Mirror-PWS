@@ -1,11 +1,13 @@
+const { UV_FS_O_FILEMAP } = require("constants");
 const { app, ipcRenderer } = require("electron");
 const electron = require("electron");
 const ipc = electron.ipcRenderer;
 const fs = require("fs");
 let { PythonShell } = require('python-shell')
 
-// TODO: auto install libraries (med prio)
-// TODO: add tickers to graph (low prio)
+// TODO: auto install libraries (med prio, hard)
+// TODO: add tickers to graph (low prio, hard)
+// TODO: format Log better (lwo prio, easy)
 
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
@@ -17,7 +19,17 @@ const EUR = new Intl.NumberFormat("en-UK", {
 let balance = 0;
 function setBal(bal) {
     balance = bal;
-    $(".balance .value").html(EUR.format(bal));
+    $(".balance .value").html(EUR.format(balance));
+}
+
+function addBal(amount) {
+    balance += amount;
+    $(".balance .value").html(EUR.format(balance));
+}
+
+function removeBal(amount) {
+    balance -= amount;
+    $(".balance .value").html(EUR.format(balance));
 }
 
 setBal(0);
@@ -97,7 +109,7 @@ function addTicker(ticker) {
         args: [ticker]
     }
     showLoading();
-    PythonShell.run('../ticker-info.py', options,  function(err, results)  {
+    PythonShell.run('../GUI Scripts/ticker-info.py', options,  function(err, results)  {
         if (err) {
             console.log(err);
             sortTickers();
@@ -287,7 +299,7 @@ function updateInfo() {
     } else {
         const ticker = selectedTicker;
         showLoading();
-        PythonShell.run('../detailed-ticker-info.py', {args: [ticker]},  function(err, results)  {
+        PythonShell.run('../GUI Scripts/detailed-ticker-info.py', {args: [ticker]},  function(err, results)  {
             if (err) throw err;
     
             const data = {
@@ -357,7 +369,7 @@ function updateInfo() {
 }
 
 function loadFullGraphData(ticker) {
-    detailedGraphFetch = PythonShell.run('../full-ticker-graph-info.py', {args: [ticker]},  function(err, results) {
+    detailedGraphFetch = PythonShell.run('../GUI Scripts/full-ticker-graph-info.py', {args: [ticker]},  function(err, results) {
         const ranges = ["week", "month", "6months", "year", "max"];
         
         if(results == null)
@@ -477,14 +489,10 @@ function changeRange(range) {
 //#endregion
 
 //#region Manual Input
-$("#manual-input").on("input", function () {
-    const input = $(this);
-    input.val(input.val().match(/[\d,.]/g).join(""));
-});
+const tickersBought = new Map();
 
-$("#manual-input").on("mouseenter", function () {
-    const input = $(this);
-    const split = input.val().split(".");
+function removeMoneyFormatting(raw, amountOfDecimals) {
+    const split = raw.split(".");
     let decimal = "";
     if(split[0] != null && split[1] != null) {
         let i = split[1].length;
@@ -494,13 +502,120 @@ $("#manual-input").on("mouseenter", function () {
                 decimal += split[1].slice(0, i + 1);
         }
     }
-    input.val(split[0].match(/[\d]/g).join("") + (decimal == "" ? "" : "." + decimal.slice(0, 2)));
+    return split[0].match(/[\d]/g).join("") + (decimal == "" ? "" : "." + decimal.slice(0, amountOfDecimals));
+}
+
+$("#manual-input").on("input", function () {
+    const input = $(this);
+
+    if(input.val() == 0)
+        input.val(0);
+    else
+        input.val(input.val().match(/[\d,.]/g).join(""));
+});
+
+$("#manual-input").on("mouseenter", function () {
+    const input = $(this);
+
+    input.val(removeMoneyFormatting(input.val(), 2));
 });
 
 $("#manual-input").on("mouseleave", function () {
     const input = $(this);
     input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
 });
+
+let manualErrQueue = 0;
+$("#manual-err").hide();
+$("#manual-buy").on("click", function() {
+    const value = removeMoneyFormatting($("#manual-input").val(), 5);
+    if(value < 0.0001) {
+        $("#manual-err").html("Value must be atleast 0.0001");
+        if(manualErrQueue <= 0)
+            $("#manual-err").fadeIn(200);
+            
+        manualErrQueue++;
+        setTimeout(() => {
+            manualErrQueue--;
+            if(manualErrQueue <= 0)
+                $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
+        }, 2000);
+    } else if(value > balance) {
+        const delta = Math.round((value - balance) * 100) / 100;
+        $("#manual-err").html(`You cannot afford this transaction (missing ${EUR.format(delta)})`);
+        if(manualErrQueue <= 0)
+            $("#manual-err").fadeIn(200);
+            
+        manualErrQueue++;
+        setTimeout(() => {
+            manualErrQueue--;
+            if(manualErrQueue <= 0)
+                $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
+        }, 2000);
+    } else if(selectedTicker == "") {
+        $("#manual-err").html(`You do not have a ticker selected`);
+        if(manualErrQueue <= 0)
+            $("#manual-err").fadeIn(200);
+            
+        manualErrQueue++;
+        setTimeout(() => {
+            manualErrQueue--;
+            if(manualErrQueue <= 0)
+                $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
+        }, 2000);
+    } else {
+        PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [selectedTicker]},  function(err, results)  {
+            if (err) throw err;
+            
+            // results[0] is the worth of the specified ticker
+            const amount = value / results[0];
+    
+            tickersBought.set(selectedTicker, amount);
+
+            console.log(value);
+            removeBal(value);
+
+            addLog(`Bought ${sigTo4(amount)}x ${selectedTicker} (${EUR.format(value)})`);
+        });
+    }
+    // Js houdt de gekochte aandelen bij per ticker
+    // Python file die live dingen terugstuurd van de hoeveelheid winst per ticker
+});
+
+$("#manual-sell").on("click", function() {
+    const value = removeMoneyFormatting($("#manual-input").val(), 5);
+    if(value < 0.0001) {
+        manualErrQueue++;
+
+        $("#manual-err").html("Value must be atleast 0.0001");
+        if(queue <= 1)
+            $("#manual-err").fadeIn(200);
+
+        setTimeout(() => {
+            manualErrQueue--;
+            if(queue <= 0)
+                $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
+        }, 2000);
+    }
+});
+
+function sigTo4(input) {
+    if(input >= 100) {
+        return Math.round(input * 10) / 10;
+    } else if(input >= 10) {
+        return Math.round(input * 100) / 100;
+    } else if(input >= 1) {
+        return Math.round(input * 1000) / 1000;
+    } else {
+        return Math.round(input * 10000) / 10000;
+    }
+}
+//#endregion
+
+//#region Log
+function addLog(text) {
+    $("#log-text").prepend(`<p>${text}</p>`);
+}
 //#endregion
 
 //#region Top Bar

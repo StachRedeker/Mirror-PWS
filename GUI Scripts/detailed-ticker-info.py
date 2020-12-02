@@ -5,7 +5,7 @@ import numpy
 from datetime import datetime
 import pytz
 from forex_python.converter import CurrencyRates, CurrencyCodes
-from utils import Utils
+from gui_utils import GUIUtils as Utils
 
 input_ticker = sys.argv[1]
 

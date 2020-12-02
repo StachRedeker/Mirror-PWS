@@ -1,6 +1,6 @@
 import sys
 import yfinance as yf
-from utils import Utils
+from gui_utils import GUIUtils as Utils
 
 input_ticker = sys.argv[1]
 

@@ -67,9 +67,10 @@
                         <p class="title">Manual</p>
                         <div class="manual-input">€<input placeholder="Amount" id="manual-input" value="0.00"></div>
                         <div class="buttons">
-                            <button id="bid">Buy</button>
-                            <button id="take">Sell</button>
+                            <button id="manual-buy">Buy</button>
+                            <button id="manual-sell">Sell</button>
                         </div>
+                        <div class="manual-input-error" id="manual-err"></div>
                     </div>
                     <div class="automatic">
                         <p class="title">Automatic</p>
@@ -79,19 +80,7 @@
                         <div class="delta">
                             <p>Profit: € <span class="value">0,00</span></p>
                         </div>
-                        <div class="lines">
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
-                            <p>Bought 15</p>
-                            <p>Sold 15</p>
+                        <div class="lines" id="log-text">
                         </div>
                     </div>
                 </div>
