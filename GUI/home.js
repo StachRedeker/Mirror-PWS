@@ -8,6 +8,9 @@ let { PythonShell } = require('python-shell')
 // TODO: auto install libraries (med prio, hard)
 // TODO: add tickers to graph (low prio, hard)
 // TODO: format Log better (lwo prio, easy)
+// TODO: integreer nou eens die fucking AI en GUI (high prio, ???)
+// TODO: indicatortjes? (low prio, hard)
+
 
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
