@@ -124,7 +124,7 @@ function addTicker(ticker) {
             };
             tickers.set(ticker, data);
             sortTickers();
-    
+
             hideLoading();
 
             setConfig("tickers", Array.from(tickers.keys()));
@@ -241,18 +241,18 @@ $(".tickers").on("click", ".more button", function() {
         activeDropdowns.delete(ticker);
     } else {
         const btn = $(this);
-    
+
         let elem = document.createElement("div");
         elem.setAttribute("style", `
-            position: absolute; 
+            position: absolute;
             top: ${btn.position().top + btn.height()}px;
             left: ${btn.position().left}px;
             height: "max-content";
             width: "max-content";`);
         elem.setAttribute("class", "dropdown more");
-        
+
         elem.innerHTML = `<div class="img"></div><button class="dropdown-more-button" id="${ticker}">Delete</button>`;
-    
+
         $(".container").append(elem);
         activeDropdowns.set(ticker, elem);
     }
@@ -290,7 +290,7 @@ function updateInfo() {
         <div class="converted">converted: <span class="value">€0.00</span></div>
         <div class="break"></div>
         <div class="status">Market Status: <span class="value">Unknown</span></div>
-        
+
         <div class="local-time">
             <div class="header">Local Time:</div>
             <div class="data">
@@ -303,7 +303,7 @@ function updateInfo() {
         showLoading();
         PythonShell.run('../GUI Scripts/detailed-ticker-info.py', {args: [ticker]},  function(err, results)  {
             if (err) throw err;
-    
+
             const data = {
                 title: results[0],
                 ticker: ticker.toUpperCase(),
@@ -333,7 +333,7 @@ function updateInfo() {
                 <div class="converted">converted: <span class="value">€${data.converted}</span></div>
                 <div class="break"></div>
                 <div class="status">Market Status: <span class="value ${(data.graphValue == null || isNaN(data.graphValue[data.graphValue.length - 1])) ? "closed" : "open"}">${(data.graphValue == null || isNaN(data.graphValue[data.graphValue.length - 1])) ? "Closed" : "Open&nbsp;&nbsp;"}</span></div>
-                
+
                 <div class="local-time">
                     <div class="header">Local Time:</div>
                     <div class="data">
@@ -375,13 +375,13 @@ function loadFullGraphData(ticker) {
         if (err) throw err;
 
         const ranges = ["week", "month", "6months", "year", "max"];
-        
+
         if(results == null)
             return;
-        
+
         for (let i = 0; i < results.length; i += 4) {
             const range = ranges[i / 4];
-            
+
             rangeData.set(range,  sortGraphData(results[i], results[i + 1], results[i + 2], results[i + 3]));
         }
     });
@@ -540,14 +540,14 @@ function updateLiveTickerProfit() {
         liveInterval = setInterval(() => {
             PythonShell.run('../GUI Scripts/get-multiple-ticker-worth.py', {args: [...tickersBought.keys()]},  function(err, results) {
                 if (err) throw err;
-        
+
                 results.forEach(result => {
                     const ticker = result.split("|")[0];
                     const worth = result.split("|")[1];
                     const original = tickersBought.get(ticker);
                     tickersBought.set(ticker, [original[0], worth, original[2]]);
                 });
-    
+
                 updateProfit();
             });
         }, 10000);
@@ -570,7 +570,7 @@ $("#manual-buy").on("click", function() {
         $("#manual-err").html("Value must be atleast 0.0001");
         if(manualErrQueue <= 0)
             $("#manual-err").fadeIn(200);
-            
+
         manualErrQueue++;
         setTimeout(() => {
             manualErrQueue--;
@@ -582,7 +582,7 @@ $("#manual-buy").on("click", function() {
         $("#manual-err").html(`You cannot afford this transaction (missing ${EUR.format(delta)})`);
         if(manualErrQueue <= 0)
             $("#manual-err").fadeIn(200);
-            
+
         manualErrQueue++;
         setTimeout(() => {
             manualErrQueue--;
@@ -593,7 +593,7 @@ $("#manual-buy").on("click", function() {
         $("#manual-err").html(`You do not have a ticker selected`);
         if(manualErrQueue <= 0)
             $("#manual-err").fadeIn(200);
-            
+
         manualErrQueue++;
         setTimeout(() => {
             manualErrQueue--;
@@ -605,10 +605,10 @@ $("#manual-buy").on("click", function() {
 
         PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [selectedTicker]},  function(err, results)  {
             if (err) throw err;
-            
+
             // results[0] is the worth of the specified ticker
             const amount = value / results[0];
-    
+
             if(tickersBought.has(selectedTicker)) {
                 const original = tickersBought.get(selectedTicker);
                 const current = original[0] * results[0];
@@ -644,7 +644,7 @@ $("#manual-sell").on("click", function() {
         $("#manual-err").html(`You do not have a ticker selected`);
         if(manualErrQueue <= 0)
             $("#manual-err").fadeIn(200);
-            
+
         manualErrQueue++;
         setTimeout(() => {
             manualErrQueue--;
@@ -654,7 +654,7 @@ $("#manual-sell").on("click", function() {
     } else {
         PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [selectedTicker]},  function(err, results)  {
             if (err) throw err;
-            
+
             // results[0] is the worth of the specified ticker
             const original = tickersBought.get(selectedTicker);
             const totalMoney = parseFloat(parseFloat(original[0]) * parseFloat(results[0]));
@@ -701,18 +701,18 @@ $(".top-bar .change-balance").on("click", "button", function() {
         activeDropdowns.delete("change-bal");
     } else {
         const btn = $(this);
-    
+
         let elem = document.createElement("div");
         elem.setAttribute("style", `
-            position: absolute; 
+            position: absolute;
             top: ${btn.position().top + btn.height()}px;
             left: ${btn.position().left}px;
             height: "max-content";
             width: "max-content";`);
         elem.setAttribute("class", "dropdown change-bal");
-        
+
         elem.innerHTML = `<input class="dropdown-change-balance" id="change-bal"/><button class="img" id="confirm-change-bal"></button>`;
-    
+
         $(".container").append(elem);
         activeDropdowns.set("change-bal", elem);
 
