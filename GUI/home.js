@@ -1,13 +1,15 @@
-const { UV_FS_O_FILEMAP } = require("constants");
-const { app, ipcRenderer } = require("electron");
-const electron = require("electron");
-const ipc = electron.ipcRenderer;
+const { ipcRenderer } = require("electron");
 const fs = require("fs");
-let { PythonShell } = require('python-shell')
+let { PythonShell } = require('python-shell');
 
-// TODO: auto install libraries (med prio, hard)
-// TODO: add tickers to graph (low prio, hard)
-// TODO: format Log better (lwo prio, easy)
+// TODO: lmao Noah's code go brrr but how do work for me :):)?
+// TODO: auto install libraries (med prio, hard) | yfinance, forex_python, pytz
+// TODO: live update worth in info-section (med prio, med)
+// TODO: make input of manual better (med prio, med)
+// TODO: limit input for change balance (low prio, easy)
+// TODO: add indicators to graph (low prio, hard)
+// TODO: format Log more aesthetically (lwo prio, easy)
+// TODO: fix height of log and alike (low prio, hard)
 
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
@@ -23,12 +25,12 @@ function setBal(bal) {
 }
 
 function addBal(amount) {
-    balance += amount;
+    balance += parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
 }
 
 function removeBal(amount) {
-    balance -= amount;
+    balance -= parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
 }
 
@@ -370,6 +372,8 @@ function updateInfo() {
 
 function loadFullGraphData(ticker) {
     detailedGraphFetch = PythonShell.run('../GUI Scripts/full-ticker-graph-info.py', {args: [ticker]},  function(err, results) {
+        if (err) throw err;
+
         const ranges = ["week", "month", "6months", "year", "max"];
         
         if(results == null)
@@ -489,6 +493,7 @@ function changeRange(range) {
 //#endregion
 
 //#region Manual Input
+// ticker = [value, invested money]
 const tickersBought = new Map();
 
 function removeMoneyFormatting(raw, amountOfDecimals) {
@@ -497,9 +502,10 @@ function removeMoneyFormatting(raw, amountOfDecimals) {
     if(split[0] != null && split[1] != null) {
         let i = split[1].length;
         while(i--) {
-            const char = split[1].charAt(i);
-            if(char !== "0")
+            if(split[1].charAt(i) !== "0") {
                 decimal += split[1].slice(0, i + 1);
+                break;
+            }
         }
     }
     return split[0].match(/[\d]/g).join("") + (decimal == "" ? "" : "." + decimal.slice(0, amountOfDecimals));
@@ -525,10 +531,41 @@ $("#manual-input").on("mouseleave", function () {
     input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
 });
 
+let liveInterval = null;
+function updateLiveTickerProfit() {
+    if(liveInterval != null)
+        clearInterval(liveInterval);
+
+    if(tickersBought.size > 0) {
+        liveInterval = setInterval(() => {
+            PythonShell.run('../GUI Scripts/get-multiple-ticker-worth.py', {args: [...tickersBought.keys()]},  function(err, results) {
+                if (err) throw err;
+        
+                results.forEach(result => {
+                    const ticker = result.split("|")[0];
+                    const worth = result.split("|")[1];
+                    const original = tickersBought.get(ticker);
+                    tickersBought.set(ticker, [original[0], worth, original[2]]);
+                });
+    
+                updateProfit();
+            });
+        }, 10000);
+    }
+}
+
+function updateProfit() {
+    let profit = 0;
+    tickersBought.forEach((data, ticker) => {
+        profit += data[2] - data[0] * data[1];
+    });
+    $(".log .delta .value").html(EUR.format(profit));
+}
+
 let manualErrQueue = 0;
 $("#manual-err").hide();
 $("#manual-buy").on("click", function() {
-    const value = removeMoneyFormatting($("#manual-input").val(), 5);
+    const value = parseFloat(removeMoneyFormatting($("#manual-input").val(), 5));
     if(value < 0.0001) {
         $("#manual-err").html("Value must be atleast 0.0001");
         if(manualErrQueue <= 0)
@@ -564,22 +601,29 @@ $("#manual-buy").on("click", function() {
                 $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
         }, 2000);
     } else {
+        removeBal(value);
+
         PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [selectedTicker]},  function(err, results)  {
             if (err) throw err;
             
             // results[0] is the worth of the specified ticker
             const amount = value / results[0];
     
-            tickersBought.set(selectedTicker, amount);
+            if(tickersBought.has(selectedTicker)) {
+                const original = tickersBought.get(selectedTicker);
+                const current = original[0] * results[0];
+                const total = current + parseFloat(value);
 
-            console.log(value);
-            removeBal(value);
+                tickersBought.set(selectedTicker, [total / results[0], results[0], total]);
+            } else {
+                tickersBought.set(selectedTicker, [amount, results[0], value]);
+            }
 
-            addLog(`Bought ${sigTo4(amount)}x ${selectedTicker} (${EUR.format(value)})`);
+            addLog(`Bought ${sigTo4(amount)}x ${selectedTicker} (<span class="negative">-${EUR.format(value)}</span>)`);
+
+            updateLiveTickerProfit();
         });
     }
-    // Js houdt de gekochte aandelen bij per ticker
-    // Python file die live dingen terugstuurd van de hoeveelheid winst per ticker
 });
 
 $("#manual-sell").on("click", function() {
@@ -596,6 +640,38 @@ $("#manual-sell").on("click", function() {
             if(queue <= 0)
                 $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
         }, 2000);
+    } else if(selectedTicker == "") {
+        $("#manual-err").html(`You do not have a ticker selected`);
+        if(manualErrQueue <= 0)
+            $("#manual-err").fadeIn(200);
+            
+        manualErrQueue++;
+        setTimeout(() => {
+            manualErrQueue--;
+            if(manualErrQueue <= 0)
+                $("#manual-err").fadeOut(200, () => $("#manual-err").html(""));
+        }, 2000);
+    } else {
+        PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [selectedTicker]},  function(err, results)  {
+            if (err) throw err;
+            
+            // results[0] is the worth of the specified ticker
+            const original = tickersBought.get(selectedTicker);
+            const totalMoney = parseFloat(parseFloat(original[0]) * parseFloat(results[0]));
+            const correctedValue = value > totalMoney ? totalMoney : value;
+            const amount = original[0] / totalMoney * value;
+
+            addLog(`Sold ${sigTo4(amount)}x ${selectedTicker} (<span class="positive">+${EUR.format(correctedValue)}</span>)`);
+
+            if(correctedValue === totalMoney)
+                tickersBought.delete(selectedTicker);
+            else
+                tickersBought.set(selectedTicker, [original[0] - amount, results[0], original[2] - correctedValue]);
+
+            updateLiveTickerProfit();
+
+            addBal(correctedValue);
+        });
     }
 });
 
@@ -639,8 +715,11 @@ $(".top-bar .change-balance").on("click", "button", function() {
     
         $(".container").append(elem);
         activeDropdowns.set("change-bal", elem);
+
+        $("#change-bal").focus();
     }
 });
+
 
 $(".container").on("click", "#confirm-change-bal", function() {
     setBal(Number($("#change-bal").val()));
@@ -650,6 +729,19 @@ $(".container").on("click", "#confirm-change-bal", function() {
         activeDropdowns.delete("change-bal");
     }
 });
+
+$(".container").on("keypress", "#change-bal", function(e) {
+    const keyCode = e.keyCode || e.which;
+    if(keyCode == 13) {
+        setBal(Number($("#change-bal").val()));
+
+    if(activeDropdowns.has("change-bal")) {
+        activeDropdowns.get("change-bal").remove();
+        activeDropdowns.delete("change-bal");
+    }
+    }
+});
+
 //#endregion
 
 $("#quit").on("click", function() {

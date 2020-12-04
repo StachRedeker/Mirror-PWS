@@ -1,18 +1,22 @@
+html {
+    height: 100vh;
+}
+
 body {
     font-family: "Oxygen", sans-serif;
     margin: 0;
     padding: 0;
+    height: 100vh;
 
     overflow-y: hidden;
 }
 
-/* span.value {
-    font-family: "Oxygen Mono";
-} */
-
 .container {
     height: 100vh;
+    width: 100vw;
+    margin: 0;
     background-color: #356e78;
+    display: block;
 }
 
 
@@ -306,7 +310,7 @@ body {
 .main {
     width: 80%;
     height: 100%;
-    margin-left: 20%;
+    margin: 0 0 0 20%;
 
     display: grid;
     grid-template-columns: 25% 75%;
@@ -478,6 +482,8 @@ body {
 
 .interact {
     display: grid;
+    height: 100%;
+    margin: 0;
     grid-template-columns: 35% 35% 30%;
 }
 
@@ -570,6 +576,14 @@ body {
     font-size: 1.2rem;
 }
 
+.log {
+    height: 100%;
+    max-height: 100%;
+    display: block;
+    margin: 0;
+    overflow: hidden;
+}
+
 .log .delta {
     background-color: #094d5c;
     color: white;
@@ -586,21 +600,25 @@ body {
     padding: 0px;
 }
 
-.log .delta span.positive {
+.log .delta span.positive, .log .lines span.positive {
     color: rgb(60, 255, 60);
 }
 
-.log .delta span.negative {
+.log .delta span.negative, .log .lines span.negative {
     color: rgb(255, 60, 60);
 }
 
 .log .lines {
+    display: block;
     background-color: #094d5c;
     border-radius: 10px;
     padding: 8px;
     margin: 0;
 
-    height: 32vh;
+    /* It works... */
+    height: calc(100% - 165px);
+    max-height: calc(100% - 165px);
+
     overflow-y: scroll;
 }
 
