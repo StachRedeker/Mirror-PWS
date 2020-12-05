@@ -5,7 +5,7 @@ from datetime import datetime
 from forex_python.converter import CurrencyRates, CurrencyCodes
 from gui_utils import GUIUtils as Utils
 
-input_ticker = sys.argv[1]
+input_ticker = Utils.decrypt(sys.argv[1])
 
 ticker = yf.Ticker(input_ticker)
 

@@ -7,12 +7,16 @@ import pytz
 from forex_python.converter import CurrencyRates, CurrencyCodes
 from gui_utils import GUIUtils as Utils
 
-input_ticker = sys.argv[1]
+input_ticker = Utils.decrypt(sys.argv[1])
 
 ticker = yf.Ticker(input_ticker)
 
-company_name = ticker.info["longName"]
+company_name = input_ticker.replace("^", "") + "-INDEX"
+if "longName" in ticker.info:
+    company_name = ticker.info['longName']
+
 print(company_name)
+
 
 # Value
 history = ticker.history(period="1d")
@@ -20,9 +24,10 @@ value = history.get("Close")[0]
 print(Utils.format_money(value))
 
 # Value Symbol & Converted
-rates = CurrencyRates()
 codes = CurrencyCodes()
-print(codes.get_symbol(ticker.info["currency"]))
+print("|".join([str(ord(char)) for char in codes.get_symbol(ticker.info["currency"])]))
+
+rates = CurrencyRates()
 print(Utils.format_money(rates.convert(ticker.info["currency"], "EUR", value)))
 
 # Local Time

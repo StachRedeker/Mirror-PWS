@@ -2,11 +2,14 @@ import sys
 import yfinance as yf
 from gui_utils import GUIUtils as Utils
 
-input_ticker = sys.argv[1]
+input_ticker = Utils.decrypt(sys.argv[1])
 
 ticker = yf.Ticker(input_ticker)
 
-company_name = ticker.info['longName']
+company_name = input_ticker.replace("^", "") + "-INDEX"
+if "longName" in ticker.info:
+    company_name = ticker.info['longName']
+
 print(company_name)
 
 history = ticker.history(period="2d")

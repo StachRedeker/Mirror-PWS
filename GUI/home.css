@@ -19,7 +19,6 @@ body {
     display: block;
 }
 
-
 /* #region Top Bar */
 .top-bar {
     width: 100%;
@@ -78,6 +77,7 @@ body {
 
 /* #region Side Bar */
 .side-bar {
+    display: block;
     height: 100%;
     width: 20%;
     background-color: #226371;
@@ -94,7 +94,10 @@ body {
     border-radius: 5px;
 }
 
+/* #region Serach */
 .side-bar .search-tickers {
+    height: 33px;
+
     margin: 5px 10px;
     padding: 5px 10px;
     border-radius: 10px;
@@ -142,13 +145,14 @@ body {
     width: 32px;
     height: 32px;
 }
+/* #endregion */
 
-
+/* #region Tickers */
 .side-bar .tickers {
     display: grid;
     overflow-y: scroll;
     overflow-x: hidden;
-    max-height: 80%;
+    max-height: calc(100% - 170px);
 }
 
 .side-bar .tickers::-webkit-scrollbar {
@@ -264,8 +268,9 @@ body {
     
     white-space: nowrap;
 }
+/* #endregion */
 
-
+/* #region App Buttons */
 .side-bar .app {
     display: flex;
     justify-content: space-around;
@@ -304,6 +309,7 @@ body {
 .side-bar .app button:active {
     background-color: #249db8;
 }
+/* #endregion */
 /* #endregion */
 
 /* #region Main */
@@ -449,8 +455,7 @@ body {
 }
 /* #endregion */
 
-
-
+/* #region Popup */
 .popup {
     position: absolute;
     bottom: -20px;
@@ -479,6 +484,8 @@ body {
     margin-bottom: 20px;
     color: white;
 }
+
+/* #endregion */
 
 .interact {
     display: grid;
@@ -602,24 +609,60 @@ body {
 
 .log .delta span.positive, .log .lines span.positive {
     color: rgb(60, 255, 60);
+    font-weight: 600;
 }
 
 .log .delta span.negative, .log .lines span.negative {
     color: rgb(255, 60, 60);
+    font-weight: 600;
 }
 
-.log .lines {
-    display: block;
+.log .data {
+    height: calc(100% - 165px);
+    display: grid;
+    grid-template-rows: 30px calc(100% - 30px);
+    grid-template-columns: 50% 50%;
+    column-gap: 5px;
+}
+
+.log .data button {
+    text-align: center;
+    background-color: #0f3741;
+    color: white;
+    font-size: 20px;
+    margin: 0;
+    padding: 4px 5px 5px 5px;
+
+    outline: none;
+    border: none;
+    border-radius: 10px 10px 0 0;
+
+    cursor: pointer;
+}
+
+.log .data button.active {
     background-color: #094d5c;
-    border-radius: 10px;
+}
+
+.log .data button:hover {
+    background-color: #127288;
+}
+
+.log .data button:active {
+    background-color: #249db8;
+}
+
+.log .data .lines {
+    background-color: #094d5c;
+    border-radius: 0 0 10px 10px;
     padding: 8px;
     margin: 0;
 
-    /* It works... */
-    height: calc(100% - 165px);
-    max-height: calc(100% - 165px);
+    height: 100%;
+    max-height: 100%;
 
     overflow-y: scroll;
+    grid-column: 1 / -1;
 }
 
 .log .lines::-webkit-scrollbar {

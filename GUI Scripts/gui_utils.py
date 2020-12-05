@@ -6,3 +6,7 @@ class GUIUtils:
     @staticmethod
     def format_money_decimal(value):
         return '{:.2f}'.format(value)
+    
+    @staticmethod
+    def decrypt(raw):
+        return raw.replace("U2038", "^").replace("U002E", ".")

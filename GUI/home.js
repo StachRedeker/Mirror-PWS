@@ -2,14 +2,10 @@ const { ipcRenderer } = require("electron");
 const fs = require("fs");
 let { PythonShell } = require('python-shell');
 
-// TODO: lmao Noah's code go brrr but how do work for me :):)?
+// TODO: integrate AI (high prio, hard)
 // TODO: auto install libraries (med prio, hard) | yfinance, forex_python, pytz
 // TODO: live update worth in info-section (med prio, med)
-// TODO: make input of manual better (med prio, med)
-// TODO: limit input for change balance (low prio, easy)
 // TODO: add indicators to graph (low prio, hard)
-// TODO: format Log more aesthetically (lwo prio, easy)
-// TODO: fix height of log and alike (low prio, hard)
 
 //#region Money/Balance
 const EUR = new Intl.NumberFormat("en-UK", {
@@ -106,7 +102,17 @@ const chart = new Chart(ctx, {
 //#endregion
 
 //#region Tickers General
+function encrypt(raw) {
+    return raw.replace("^", "U2038").replace(".", "U002E");
+}
+
+function decrypt(raw) {
+    return raw.replace("U2038", "^").replace("U002E", ".");
+}
+
 function addTicker(ticker) {
+    ticker = encrypt(ticker);
+
     const options = {
         args: [ticker]
     }
@@ -141,8 +147,8 @@ function removeTicker(ticker) {
 
 function sortTickers() {
     tickers.forEach((data, _) => {
-        if(data.ticker.length > maxLength)
-            maxLength = data.ticker.length;
+        if(decrypt(data.ticker).length > maxLength)
+            maxLength = decrypt(data.ticker).length;
     });
 
     const container = $(".side-bar .tickers");
@@ -151,11 +157,11 @@ function sortTickers() {
     pinnedTickers.forEach(ticker => {
         const data = tickers.get(ticker);
         if(data != undefined)
-            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
+            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button class="active" id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(decrypt(data.ticker))}</span></div>`;
     });
     tickers.forEach((data, ticker) => {
         if(!pinnedTickers.includes(ticker)) {
-            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(data.ticker)}</span></div>`;
+            content += `<div id="${ticker}" ${selectedTicker === ticker ? "class='active'" : ""}><span class="title">${data.title}</span><span class="more"><button></button></span><span class="pin"><button id="${data.ticker}-pin"></button></span><span class="info">${data.change} | ${equalSpacing(decrypt(data.ticker))}</span></div>`;
         }
     });
 
@@ -308,7 +314,7 @@ function updateInfo() {
                 title: results[0],
                 ticker: ticker.toUpperCase(),
                 value: results[1],
-                symbol: results[2],
+                symbol: String.fromCharCode.apply(String, results[2].split("|")),
                 converted: results[3],
                 localDate: results[4],
                 offset: parseInt(results[5]),
@@ -499,7 +505,10 @@ const tickersBought = new Map();
 function removeMoneyFormatting(raw, amountOfDecimals) {
     const split = raw.split(".");
     let decimal = "";
-    if(split[0] != null && split[1] != null) {
+    if(split[0] == null || split[0] == "")
+        split[0] = "0";
+    
+    if(split[1] != null) {
         let i = split[1].length;
         while(i--) {
             if(split[1].charAt(i) !== "0") {
@@ -514,9 +523,7 @@ function removeMoneyFormatting(raw, amountOfDecimals) {
 $("#manual-input").on("input", function () {
     const input = $(this);
 
-    if(input.val() == 0)
-        input.val(0);
-    else
+    if(input.val() != 0)
         input.val(input.val().match(/[\d,.]/g).join(""));
 });
 
@@ -528,8 +535,15 @@ $("#manual-input").on("mouseenter", function () {
 
 $("#manual-input").on("mouseleave", function () {
     const input = $(this);
-    input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
+    if(!input.is(":focus"))
+        input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
 });
+
+$("#manual-input").on("blur", function() {
+    const input = $(this);
+    if(input.val() != 0)
+        input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
+});    
 
 let liveInterval = null;
 function updateLiveTickerProfit() {
@@ -546,20 +560,42 @@ function updateLiveTickerProfit() {
                     const worth = result.split("|")[1];
                     const original = tickersBought.get(ticker);
                     tickersBought.set(ticker, [original[0], worth, original[2]]);
+                    const delta = original[0] * worth - original[2];
+
+                    let color = "";
+                    if(delta >= 0.005)
+                        color = "positive";
+                    else if(delta <= -0.005)
+                        color = "negative";
+
+                    setTotal(ticker, `<p>${ticker}: ${sigTo4(original[0])}x (${EUR.format(original[0] * worth)} | <span class="${color}">${delta > 0 ? "+" : ""}${EUR.format(delta)}</span>)</p>`)
+                    updateTotalLog();
                 });
 
                 updateProfit();
             });
         }, 10000);
+    } else {
+        updateProfit();
     }
 }
 
 function updateProfit() {
     let profit = 0;
     tickersBought.forEach((data, ticker) => {
-        profit += data[2] - data[0] * data[1];
+        profit += data[0] * data[1] - data[2];
     });
-    $(".log .delta .value").html(EUR.format(profit));
+    $(".log .delta .value").html((profit > 0 ? "+" : "") + EUR.format(profit));
+    if(profit >= 0.005) {
+        $(".log .delta .value").addClass("positive");
+        $(".log .delta .value").removeClass("negative");
+    } else if(profit <= -0.005) {
+        $(".log .delta .value").addClass("negative");
+        $(".log .delta .value").removeClass("positive");
+    } else {
+        $(".log .delta .value").removeClass("negative");
+        $(".log .delta .value").removeClass("positive");
+    }
 }
 
 let manualErrQueue = 0;
@@ -615,12 +651,23 @@ $("#manual-buy").on("click", function() {
                 const total = current + parseFloat(value);
 
                 tickersBought.set(selectedTicker, [total / results[0], results[0], total]);
+
+                const delta = original[0] * results[0] - original[2];
+
+                let color = "";
+                if(delta >= 0.005)
+                    color = "positive";
+                else if(delta <= -0.005)
+                    color = "negative";
+
+                setTotal(selectedTicker, `<p>${selectedTicker}: ${sigTo4(total / results[0])}x (${EUR.format(total)} | <span class="${color}">${delta > 0 ? "+" : ""}${EUR.format(delta)}</span>)</p>`);
             } else {
                 tickersBought.set(selectedTicker, [amount, results[0], value]);
+                setTotal(selectedTicker, `<p>${selectedTicker}: ${sigTo4(amount)}x (${EUR.format(value)} | €0.00)</p>`);
             }
 
-            addLog(`Bought ${sigTo4(amount)}x ${selectedTicker} (<span class="negative">-${EUR.format(value)}</span>)`);
-
+            addLog(`<p>Bought ${sigTo4(amount)}x ${selectedTicker} (<span class="negative">-${EUR.format(value)}</span>)</p>`);
+            
             updateLiveTickerProfit();
         });
     }
@@ -657,16 +704,28 @@ $("#manual-sell").on("click", function() {
 
             // results[0] is the worth of the specified ticker
             const original = tickersBought.get(selectedTicker);
-            const totalMoney = parseFloat(parseFloat(original[0]) * parseFloat(results[0]));
+            const totalMoney = parseFloat(parseFloat(original[0]) * parseFloat(results[0] == null ? original[1] : results[0]));
             const correctedValue = value > totalMoney ? totalMoney : value;
-            const amount = original[0] / totalMoney * value;
+            const amount = correctedValue / results[0];
 
-            addLog(`Sold ${sigTo4(amount)}x ${selectedTicker} (<span class="positive">+${EUR.format(correctedValue)}</span>)`);
+            addLog(`<p>Sold ${sigTo4(amount)}x ${selectedTicker} (<span class="positive">+${EUR.format(correctedValue)}</span>)</p>`);
 
-            if(correctedValue === totalMoney)
+            if(correctedValue === totalMoney) {
                 tickersBought.delete(selectedTicker);
-            else
+                setTotal(selectedTicker, null);
+            } else {
+                const delta = (original[0] - amount) * results[0] - (original[2] - correctedValue);
+
+                let color = "";
+                if(delta >= 0.005)
+                    color = "positive";
+                else if(delta <= -0.005)
+                    color = "negative";
+
                 tickersBought.set(selectedTicker, [original[0] - amount, results[0], original[2] - correctedValue]);
+                setTotal(selectedTicker, `<p>${selectedTicker}: ${sigTo4(original[0] - amount)}x (${EUR.format(original[2] - correctedValue)} | <span class="${color}">${delta > 0 ? "+" : ""}${EUR.format(delta)}</span>)</p>`);
+            }
+
 
             updateLiveTickerProfit();
 
@@ -689,9 +748,56 @@ function sigTo4(input) {
 //#endregion
 
 //#region Log
+let mode = "change";
+
+const changeLog = [];
 function addLog(text) {
-    $("#log-text").prepend(`<p>${text}</p>`);
+    changeLog.push(text);
+    if(mode === "change") {
+        $("#log-text").prepend(text);
+        updateChangeLog();
+    }
 }
+
+const totalLog = new Map();
+function setTotal(key, value) {
+    if(value == null)
+        totalLog.delete(key);
+    else
+        totalLog.set(key, value);
+
+    if(mode === "total")
+        updateTotalLog();
+}
+
+function updateChangeLog() {
+    $("#log-text").html("");
+    changeLog.forEach(key => {
+        $("#log-text").prepend(key);
+    });
+}
+
+function updateTotalLog() {
+    $("#log-text").html("");
+    totalLog.forEach((value, key) => {
+        $("#log-text").prepend(value);
+    });
+}
+
+$(".log .log-setting").on("click", function() {
+    const btn = $(this);
+    if(btn.hasClass("active"))
+        return;
+    
+    $("#" + mode).removeClass("active");
+    $(this).addClass("active");
+    mode = btn.attr("id");
+
+    if(mode === "change")
+        updateChangeLog();
+    else if(mode === "total")
+        updateTotalLog();
+});
 //#endregion
 
 //#region Top Bar
@@ -711,7 +817,7 @@ $(".top-bar .change-balance").on("click", "button", function() {
             width: "max-content";`);
         elem.setAttribute("class", "dropdown change-bal");
 
-        elem.innerHTML = `<input class="dropdown-change-balance" id="change-bal"/><button class="img" id="confirm-change-bal"></button>`;
+        elem.innerHTML = `<input class="dropdown-change-balance" id="change-bal" value="0.00"/><button class="img" id="confirm-change-bal"></button>`;
 
         $(".container").append(elem);
         activeDropdowns.set("change-bal", elem);
@@ -742,6 +848,30 @@ $(".container").on("keypress", "#change-bal", function(e) {
     }
 });
 
+$(".container").on("input", "#change-bal", function () {
+    const input = $(this);
+
+    if(input.val() != 0)
+        input.val(input.val().match(/[\d,.]/g).join(""));
+});
+
+$(".container").on("mouseenter", "#change-bal", function () {
+    const input = $(this);
+
+    input.val(removeMoneyFormatting(input.val(), 2));
+});
+
+$(".container").on("mouseleave", "#change-bal", function () {
+    const input = $(this);
+    if(!input.is(":focus"))
+        input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
+});
+
+$(".container").on("blur", "#change-bal", function() {
+    const input = $(this);
+    if(input.val() != 0)
+        input.val(EUR.format(input.val()).match(/[\d,.]/g).join(""));
+});  
 //#endregion
 
 $("#quit").on("click", function() {
