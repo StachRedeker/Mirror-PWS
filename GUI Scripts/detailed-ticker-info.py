@@ -12,16 +12,18 @@ input_ticker = Utils.decrypt(sys.argv[1])
 ticker = yf.Ticker(input_ticker)
 
 company_name = input_ticker.replace("^", "") + "-INDEX"
-if "longName" in ticker.info:
-    company_name = ticker.info['longName']
+if "longName" in ticker.info and ticker.info["longName"] is not None:
+    company_name = ticker.info["longName"]
 
 print(company_name)
 
 
 # Value
-history = ticker.history(period="1d")
+history = ticker.history(period="1d", interval="1m")
 value = history.get("Close")[0]
 print(Utils.format_money(value))
+
+
 
 # Value Symbol & Converted
 codes = CurrencyCodes()
@@ -30,10 +32,14 @@ print("|".join([str(ord(char)) for char in codes.get_symbol(ticker.info["currenc
 rates = CurrencyRates()
 print(Utils.format_money(rates.convert(ticker.info["currency"], "EUR", value)))
 
+
+
 # Local Time
 timezone = pytz.timezone(ticker.info["exchangeTimezoneName"])
 print(datetime.now(timezone).strftime("%d %B %Y"))
 print(datetime.now(timezone).strftime("%z").replace("0", ""))
+
+
 
 # Graph
 history = ticker.history(period="1d", interval="1m")

@@ -7,8 +7,8 @@ input_ticker = Utils.decrypt(sys.argv[1])
 ticker = yf.Ticker(input_ticker)
 
 company_name = input_ticker.replace("^", "") + "-INDEX"
-if "longName" in ticker.info:
-    company_name = ticker.info['longName']
+if "longName" in ticker.info and ticker.info["longName"] is not None:
+        company_name = ticker.info["longName"]
 
 print(company_name)
 

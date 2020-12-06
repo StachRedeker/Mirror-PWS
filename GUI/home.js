@@ -3,8 +3,7 @@ const fs = require("fs");
 let { PythonShell } = require('python-shell');
 
 // TODO: integrate AI (high prio, hard)
-// TODO: auto install libraries (med prio, hard) | yfinance, forex_python, pytz
-// TODO: live update worth in info-section (med prio, med)
+// TODO: live update day-graph if market is open (low prio, med)
 // TODO: add indicators to graph (low prio, hard)
 
 //#region Money/Balance
@@ -16,16 +15,25 @@ const EUR = new Intl.NumberFormat("en-UK", {
 
 let balance = 0;
 function setBal(bal) {
+    if(bal > 10000000000000000)
+        bal = 10000000000000000;
+
     balance = bal;
     $(".balance .value").html(EUR.format(balance));
 }
 
 function addBal(amount) {
+    if(amount > 10000000000000000)
+        amount = 10000000000000000;
+
     balance += parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
 }
 
 function removeBal(amount) {
+    if(amount > 10000000000000000)
+        amount = 10000000000000000;
+
     balance -= parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
 }
@@ -45,6 +53,21 @@ let configData = {};
 
 //Startup Initialization/Data Getting etc.
 $(() => {
+    showLoading();
+    PythonShell.run('../GUI Scripts/setup.py', {}, function(err, results) {
+        if (err) throw err;
+
+        let out = [];
+        results.forEach(ln => {
+            const word = ln.split(" ")[1];
+            if(word === "Package" || word === "Installed")
+                out.push(ln);
+        });
+
+        console.log(out.join("\n"));
+        hideLoading();
+    });
+
     try {
         if(fs.existsSync("./config.json")) {
             fs.readFile("./config.json", (err, data) => {
@@ -103,11 +126,11 @@ const chart = new Chart(ctx, {
 
 //#region Tickers General
 function encrypt(raw) {
-    return raw.replace("^", "U2038").replace(".", "U002E");
+    return raw.replace("^", "U2038").replace(".", "U002E").replace("=", "U003D");
 }
 
 function decrypt(raw) {
-    return raw.replace("U2038", "^").replace("U002E", ".");
+    return raw.replace("U2038", "^").replace("U002E", ".").replace("U003D", "=");
 }
 
 function addTicker(ticker) {
@@ -198,8 +221,7 @@ $(".tickers").on("click", "div", function() {
 
         const tickerDiv = $(this);
         if(tickerDiv.hasClass("active")) {
-            tickerDiv.removeClass("active");
-            selectedTicker = "";
+            return;
         } else {
             tickerDiv.addClass("active");
             if(selectedTicker != "")
@@ -276,6 +298,7 @@ let detailedGraphFetch;
 let rangeData = new Map();
 let rangeLabel = "";
 let currentRange = "day";
+let liveWorthInterval;
 function updateInfo() {
     rangeData.clear();
     rangeLabel = "";
@@ -292,6 +315,7 @@ function updateInfo() {
 
     if(selectedTicker == "") {
         clearInterval(timeOffset);
+        clearInterval(liveWorthInterval);
         $(".main .info").html(`<div class="worth value">$0.00</div>
         <div class="converted">converted: <span class="value">€0.00</span></div>
         <div class="break"></div>
@@ -305,6 +329,7 @@ function updateInfo() {
             </div>
         </div>`);
     } else {
+        clearInterval(liveWorthInterval);
         const ticker = selectedTicker;
         showLoading();
         PythonShell.run('../GUI Scripts/detailed-ticker-info.py', {args: [ticker]},  function(err, results)  {
@@ -312,7 +337,7 @@ function updateInfo() {
 
             const data = {
                 title: results[0],
-                ticker: ticker.toUpperCase(),
+                ticker: decrypt(ticker).toUpperCase(),
                 value: results[1],
                 symbol: String.fromCharCode.apply(String, results[2].split("|")),
                 converted: results[3],
@@ -330,15 +355,27 @@ function updateInfo() {
 
             clearInterval(timeOffset);
 
+            let marketOpen = false;
             timeOffset = setInterval(() => {
                 const date = new Date();
-                $(".local-time .data .time").html(`${date.getHours() - 1 + data.offset}:${(date.getMinutes() < 10 ? "0" : "") + date.getMinutes()} (EST${data.offset >= 0 ? "+" + data.offset : data.offset})`);
+                const time = date.getHours() - 1 + data.offset + ":" + (date.getMinutes() < 10 ? "0" : "") + date.getMinutes();
+
+                if(isNaN(data.offset))
+                    $(".local-time .data .time").html(`--:-- (EST-~)`);
+                else
+                    $(".local-time .data .time").html(`${time} (EST${data.offset >= 0 ? "+" + data.offset : data.offset})`);
+
+                const lowRange = parseInt(data.graphDate.split("|")[0].split(":")[0] * 60 + data.graphDate.split("|")[0].split(":")[1]);
+                const highRange = parseInt(data.graphDate.split("|").pop().split(":")[0] * 60 + data.graphDate.split("|").pop().split(":")[1]);
+                const current = parseInt(time.split(":")[0] * 60 + time.split(":")[1]);
+                marketOpen = (isNaN(data.offset) || (current >= lowRange && current <= highRange));
+                $(".status").html(`Market Status: <span class="value ${marketOpen ? "open" : "closed"}">${marketOpen ? "Open&nbsp;&nbsp;" : "Closed"}`);
             }, 1000);
 
             $(".main .info").html(`<div class="worth value">${data.symbol}${data.value}</div>
-                <div class="converted">converted: <span class="value">€${data.converted}</span></div>
+                <div class="converted">${data.symbol !== "€" ? `converted: <span class="${data.value}">€${data.converted}</span>` : ""}</div>
                 <div class="break"></div>
-                <div class="status">Market Status: <span class="value ${(data.graphValue == null || isNaN(data.graphValue[data.graphValue.length - 1])) ? "closed" : "open"}">${(data.graphValue == null || isNaN(data.graphValue[data.graphValue.length - 1])) ? "Closed" : "Open&nbsp;&nbsp;"}</span></div>
+                <div class="status">Market Status: <span class="value closed">Closed</span></div>
 
                 <div class="local-time">
                     <div class="header">Local Time:</div>
@@ -347,6 +384,8 @@ function updateInfo() {
                         <span class="time">??:?? (EST-?)</span>
                     </div>
                 </div>`);
+            
+            updateLiveWorth(data.ticker, data.symbol);
 
             chart.data = {
                 labels: dayData[0],
@@ -374,6 +413,27 @@ function updateInfo() {
             hideLoading();
         });
     }
+}
+
+function updateLiveWorth(ticker, symbol) {
+    return;
+    
+    //FIXME: This errors out after a while, maybe due to too many requests? Not critical so I could just leave it disabled.
+
+    if(liveWorthInterval != null)
+        clearInterval(liveWorthInterval);
+    
+    liveWorthInterval = setInterval(() => {
+        PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [ticker]},  function(err, results)  {
+            if(err) throw err;
+
+            const worth = results[0];
+            const converted = results[1];
+
+            $(".info .worth .value").html(symbol + worth);
+            $(".info .converted .value").html("€" + converted);
+        });
+    }, 1000);
 }
 
 function loadFullGraphData(ticker) {
@@ -569,7 +629,6 @@ function updateLiveTickerProfit() {
                         color = "negative";
 
                     setTotal(ticker, `<p>${ticker}: ${sigTo4(original[0])}x (${EUR.format(original[0] * worth)} | <span class="${color}">${delta > 0 ? "+" : ""}${EUR.format(delta)}</span>)</p>`)
-                    updateTotalLog();
                 });
 
                 updateProfit();
@@ -747,6 +806,10 @@ function sigTo4(input) {
 }
 //#endregion
 
+//#region Automatic
+
+//#endregion
+
 //#region Log
 let mode = "change";
 
@@ -826,7 +889,6 @@ $(".top-bar .change-balance").on("click", "button", function() {
     }
 });
 
-
 $(".container").on("click", "#confirm-change-bal", function() {
     setBal(Number($("#change-bal").val()));
 
@@ -884,36 +946,38 @@ let anim; let animStage = 0;
 function showLoading() {
     queue++;
 
-    $("#load-popup").addClass("active");
+    if(queue <= 1) {
+        $("#load-popup").addClass("active");
 
-    clearInterval(anim);
-    anim = setInterval(function() {
-        switch (animStage) {
-            case 1:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading" + "&nbsp;".repeat(3));
-                break;
-            case 2:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading." + "&nbsp;".repeat(2));
-                break;
-            case 3:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading.." + "&nbsp;");
-                break;
-            default:
-                $("#loading-text").html("&nbsp;".repeat(3) + "Loading...");
-                break;
-        }
-
-        if(animStage < 3)
-            animStage++;
-        else
-            animStage = 0;
-    }, 500);
+        clearInterval(anim);
+        anim = setInterval(function() {
+            switch (animStage) {
+                case 1:
+                    $("#loading-text").html("&nbsp;".repeat(3) + "Loading" + "&nbsp;".repeat(3));
+                    break;
+                case 2:
+                    $("#loading-text").html("&nbsp;".repeat(3) + "Loading." + "&nbsp;".repeat(2));
+                    break;
+                case 3:
+                    $("#loading-text").html("&nbsp;".repeat(3) + "Loading.." + "&nbsp;");
+                    break;
+                default:
+                    $("#loading-text").html("&nbsp;".repeat(3) + "Loading...");
+                    break;
+            }
+    
+            if(animStage < 3)
+                animStage++;
+            else
+                animStage = 0;
+        }, 500);
+    }
 }
 
 function hideLoading() {
     queue--;
 
-    if(queue == 0) {
+    if(queue <= 0) {
         $("#load-popup").removeClass("active");
         clearInterval(anim);
     }
