@@ -2,6 +2,8 @@ import os
 import pickle
 from datetime import datetime, timedelta
 
+import xlsxwriter
+
 import random
 import yfinance as stocks
 import math
@@ -31,7 +33,7 @@ class Trader:
 class VirtualMarket:
     def __init__(self, startdate, enddate, ticker="MSFT"):
         self.market_info = stocks.download(tickers=ticker, group_by='ticker', progress=True,
-                                           start=(startdate - timedelta(days=32)), end=enddate + timedelta(days=2),
+                                           start=(startdate - timedelta(days=32)), end=(enddate + timedelta(days=2)),
                                            interval="1d")
         self.today = startdate
         self.startdate = startdate
@@ -90,7 +92,7 @@ class VirtualMarket:
 START_BALANCE = 5000
 
 date = datetime.now()
-market = VirtualMarket(date - timedelta(days=731), date - timedelta(days=366))
+market = VirtualMarket(date - timedelta(days=366), date, "RYDAF")
 
 markets = []
 
@@ -149,22 +151,25 @@ def main(genomes, config):
 
         for i, trader in enumerate(traders):
             output = networks[i].activate((delta_1d, delta_2d, delta_5d, delta_14d, delta_31d))
-            #traders[i].balance -= 2
+            # traders[i].balance -= 2
 
             if solo:
                 money.append([market.get_today(), traders[i].balance])
                 values.append(today_value)
 
+            amount500 = (500 / today_value)
+            amount100 = (100 / today_value)
+
             if output[0] >= 0.5:
-                # Hij kiest om 10x MSFT te kopen voor 1 dag
-                traders[i].balance += 10 * (tomorrow_value - today_value)
+                # Hij kiest om 500$ te kopen voor 1 dag
+                traders[i].balance += amount500 * (tomorrow_value - today_value)
                 if solo:
-                    actions.append("BUY10")
-            elif output[0] <= -0.5:
-                # Hij kiest om voor 5x MSFT te kopen voor 1 dag
-                traders[i].balance += 5 * (tomorrow_value - today_value)
+                    actions.append("BUY500")
+            elif output[1] >= 0.5:
+                # Hij kiest om voor 100$ te kopen voor 1 dag
+                traders[i].balance += amount100 * (tomorrow_value - today_value)
                 if solo:
-                    actions.append("BUY5")
+                    actions.append("BUY100")
             else:
                 if solo:
                     actions.append("NOTHING")
@@ -220,17 +225,79 @@ def main(genomes, config):
         dates = []
         moneyz = []
         percentages = []
+        percentages_stock = []
 
         for pair in money:
             dates.append(pair[0])
             moneyz.append(pair[1])
-            percentages.append((math.floor((pair[1]/START_BALANCE * 100)*100)/100-100))
+            percentages.append((math.floor((pair[1] / START_BALANCE * 100) * 100) / 100 - 100))
+
+        stock_start = market.get_day_value(market.startdate)
+
+        for date in dates:
+            if date < market.startdate:
+                continue
+
+            percentages_stock.append((math.floor((market.get_day_value(date) / stock_start * 100) * 100) / 100 - 100))
 
         graph(dates, moneyz, "balance")
-        graph(dates, percentages, "percentage")
+        graph(dates, percentages, "percentage", dates, percentages_stock)
+
+        if not excel(dates, moneyz, "balance"):
+            print("Error in generating xlsx file for balances.")
+        if not excel(dates, percentages, "percentage"):
+            print("Error in generating xlsx file for percentages.")
 
 
-def graph(x, y, tag):
+def excel(dates, values, tag):
+    if not len(dates) == len(values):
+        return False
+
+    workbook = xlsxwriter.Workbook("graphs/winner_" + tag + "_" + market.get_ticker() + ".xlsx")
+    worksheet = workbook.add_worksheet()
+
+    bold = workbook.add_format({'bold': True})
+
+    worksheet.write("A1", "Dates", bold)
+    worksheet.write("B1", tag, bold)
+
+    for i, date in enumerate(dates):
+        worksheet.write("A" + str(i + 2), str(date.day) + "/" + str(date.month) + "/" + str(date.year))
+        worksheet.write_number("B" + str(i + 2), values[i])
+
+    workbook.close()
+    return True
+
+
+def advice(winner_genome, neat_config, stock_data, day):
+    network = neat.nn.FeedForwardNetwork.create(winner_genome, neat_config)
+
+    closes = stock_data.get("Close")
+    today_value = get_stock_value(closes, day)
+
+    delta_1d = today_value - get_stock_value(closes, day - timedelta(days=1))
+    delta_2d = today_value - get_stock_value(closes, day - timedelta(days=2))
+    delta_5d = today_value - get_stock_value(closes, day - timedelta(days=5))
+    delta_14d = today_value - get_stock_value(closes, day - timedelta(days=14))
+    delta_31d = today_value - get_stock_value(closes, day - timedelta(days=31))
+
+    output = network.activate((delta_1d, delta_2d, delta_5d, delta_14d, delta_31d))
+    return output
+
+
+def get_stock_value(stock_closes, day):
+    cur_day = day
+    result = None
+
+    while result is None:
+        result = stock_closes.get(
+            "{0}-{1}-{2}".format(cur_day.year, cur_day.month, cur_day.day))
+        cur_day -= timedelta(days=1)
+
+    return result
+
+
+def graph(x, y, tag, x2=None, y2=None):
     fig, ax = plt.subplots(nrows=1, ncols=1)
     plt.subplots_adjust(bottom=0.15)
 
@@ -238,6 +305,10 @@ def graph(x, y, tag):
 
     fig.set_size_inches(18.5, 10.5)
     ax.plot_date(x, y, marker='', linestyle='-')
+
+    if x2 is not None and y2 is not None:
+        ax.plot_date(x2, y2, marker='', linestyle='-')
+
     ax.xaxis.set_major_locator(pltticker.MultipleLocator(5))
 
     save_dir = "graphs/winner_" + tag + "_" + market.get_ticker() + ".png"
@@ -260,6 +331,7 @@ def graph(x, y, tag):
             res) + ")")
 
     plt.close(fig)
+
 
 def run(config_path):
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
@@ -300,26 +372,40 @@ if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "config-feedforward.txt")
 
-    inp = input("action")
+    inp = input("Command (rerun or advice, leave empty to train)» \n")
     if inp.split(" ")[0] == "rerun":
         print("Rerun of winner for {0}:".format(inp.split(" ")[1]))
         replay_genome(config_path, inp.split(" ")[1])
+    elif inp.split(" ")[0] == "advice":
+        stock_name = inp.split(" ")[1]
+        print("Getting advice from winner.pkl for " + stock_name + "...")
+
+        with open("winner.pkl", "rb") as f:
+            genome = pickle.load(f)
+
+        config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
+                                    neat.DefaultStagnation, config_path)
+
+        stock = stocks.download(tickers=stock_name, start=(date - timedelta(days=32)), end=date, interval="1d", progress=True)
+
+        advice = advice(genome, config, stock, date)
+        print("Buy? (>0.5=yes) - " + str(advice[0]))
     else:
         markets = [
-            VirtualMarket(date - timedelta(days=731), date - timedelta(days=364)),
-            VirtualMarket(date - timedelta(days=366), date),
-            VirtualMarket(date - timedelta(days=366), date, "TSLA"),
-            VirtualMarket(date - timedelta(days=366), date, "ETH-EUR"),
+            VirtualMarket(date - timedelta(days=366), date, "KLMR"),
+            VirtualMarket(date - timedelta(days=366), date, "RYDAF"),
+            VirtualMarket(date - timedelta(days=366), date, "BP"),
             VirtualMarket(date - timedelta(days=731), date - timedelta(days=366), "GOOG"),
             VirtualMarket(date - timedelta(days=366), date, "FSR"),
             VirtualMarket(date - timedelta(days=366), date, "GOLD"),
+            VirtualMarket(date - timedelta(days=731), date, "TSLA"),
             VirtualMarket(date - timedelta(days=366), date, "AMZN"),
             VirtualMarket(date - timedelta(days=366), date, "SI=F"),
             VirtualMarket(date - timedelta(days=366), date, "CL=F"),
             VirtualMarket(date - timedelta(days=366), date, "XRP-USD"),
-            VirtualMarket(date - timedelta(days=366), date, "NEO-USD"),
+            VirtualMarket(date - timedelta(days=366), date, "KLMR"),
             VirtualMarket(date - timedelta(days=366), date, "BCH-USD"),
-            VirtualMarket(date - timedelta(days=366), date, "DASH-USD"),
             VirtualMarket(date - timedelta(days=366), date, "LTC-USD"),
+            VirtualMarket(date - timedelta(days=366), date, "RYDAF"),
         ]
         run(config_path)
