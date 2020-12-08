@@ -2,8 +2,35 @@ const { ipcRenderer } = require("electron");
 const fs = require("fs");
 let { PythonShell } = require('python-shell');
 
+/*
+PY zooi van nowa:
+local_dir = os.path.dirname(__file__)
+config_path = os.path.join(local_dir, "config-feedforward.txt")
+replay_genome(config, ---TICKER---)
+
+replay_genome geeft me weet ik veel ik wil gewoon een waardes
+blijkbaar iets in main met graph en bowa zegt dat daar x en y is? nou fijn?
+wat is nuttig wat is niet nuttig?
+is het niet sneller als ik zelf een AI schrijf?
+ik wil dood
+help
+help
+help
+zelfmoord is nabij
+en uberhaupt als wij iets van een resultaat willen is al die zooi die noah doet veel te sloom
+we hebben hier een while loop 60 regels over een grafiek met 4000 waardes hallo
+is dit uberhaupt nodig
+ik wil gewoon een waarde zo moeilijk kan het toch niet zijn kom op nou
+help
+help
+help
+ok doei ik ga andere dingen doen
+*/
+
+
+
 // TODO: integrate AI (high prio, hard)
-// TODO: live update day-graph if market is open (low prio, med)
+// TODO: live update worth if market is open (low prio, med)
 // TODO: add indicators to graph (low prio, hard)
 
 //#region Money/Balance
@@ -19,7 +46,7 @@ function setBal(bal) {
         bal = 10000000000000000;
 
     balance = bal;
-    $(".balance .value").html(EUR.format(balance));
+    $(".balance .value").html(EUR.format(bal));
 }
 
 function addBal(amount) {
@@ -45,6 +72,8 @@ setBal(0);
 setInterval(() => {
     const date = new Date();
     $(".time .value").html(date.getHours() + ":" + (date.getMinutes() < 10 ? "0" : "") + date.getMinutes() + ":" + (date.getSeconds() < 10 ? "0" : "") +  date.getSeconds());
+    if(date.getSeconds() == "0")
+        updateLiveInfo(selectedTicker);
 }, 1000);
 //#endregion
 
@@ -119,6 +148,9 @@ const chart = new Chart(ctx, {
             line: {
                 tension: 0.1
             }
+        },
+        animation: {
+            duration: 0
         }
     }
 });
@@ -315,7 +347,7 @@ function updateInfo() {
 
     if(selectedTicker == "") {
         clearInterval(timeOffset);
-        clearInterval(liveWorthInterval);
+        liveInfo = false;
         $(".main .info").html(`<div class="worth value">$0.00</div>
         <div class="converted">converted: <span class="value">€0.00</span></div>
         <div class="break"></div>
@@ -349,13 +381,12 @@ function updateInfo() {
                 graphDividends: results[9]
             };
 
-            const dayData = sortGraphData(data.graphDate, data.graphValue, data.graphSplits, data.graphDividends)
+            const dayData = sortGraphData(data.graphDate, data.graphValue, data.graphSplits, data.graphDividends);
             rangeData.set("day", dayData);
             rangeLabel = data.title;
 
             clearInterval(timeOffset);
 
-            let marketOpen = false;
             timeOffset = setInterval(() => {
                 const date = new Date();
                 const time = date.getHours() - 1 + data.offset + ":" + (date.getMinutes() < 10 ? "0" : "") + date.getMinutes();
@@ -364,16 +395,13 @@ function updateInfo() {
                     $(".local-time .data .time").html(`--:-- (EST-~)`);
                 else
                     $(".local-time .data .time").html(`${time} (EST${data.offset >= 0 ? "+" + data.offset : data.offset})`);
-
-                const lowRange = parseInt(data.graphDate.split("|")[0].split(":")[0] * 60 + data.graphDate.split("|")[0].split(":")[1]);
-                const highRange = parseInt(data.graphDate.split("|").pop().split(":")[0] * 60 + data.graphDate.split("|").pop().split(":")[1]);
-                const current = parseInt(time.split(":")[0] * 60 + time.split(":")[1]);
-                marketOpen = (isNaN(data.offset) || (current >= lowRange && current <= highRange));
-                $(".status").html(`Market Status: <span class="value ${marketOpen ? "open" : "closed"}">${marketOpen ? "Open&nbsp;&nbsp;" : "Closed"}`);
             }, 1000);
 
+            liveInfo = true;
+            updateLiveInfo(data.ticker, data.symbol);
+
             $(".main .info").html(`<div class="worth value">${data.symbol}${data.value}</div>
-                <div class="converted">${data.symbol !== "€" ? `converted: <span class="${data.value}">€${data.converted}</span>` : ""}</div>
+                <div class="converted">${data.symbol !== "€" ? `converted: <span class="value">€${data.converted}</span>` : ""}</div>
                 <div class="break"></div>
                 <div class="status">Market Status: <span class="value closed">Closed</span></div>
 
@@ -385,8 +413,6 @@ function updateInfo() {
                     </div>
                 </div>`);
             
-            updateLiveWorth(data.ticker, data.symbol);
-
             chart.data = {
                 labels: dayData[0],
                 datasets: [{
@@ -415,25 +441,63 @@ function updateInfo() {
     }
 }
 
-function updateLiveWorth(ticker, symbol) {
-    return;
+let liveInfo = false;
+function updateLiveInfo(ticker) {
+    if(!liveInfo)
+        return;
     
-    //FIXME: This errors out after a while, maybe due to too many requests? Not critical so I could just leave it disabled.
+    PythonShell.run('../GUI Scripts/live-ticker-info.py', {args: [ticker]},  function(err, results)  {
+        if(err) throw err;
 
-    if(liveWorthInterval != null)
-        clearInterval(liveWorthInterval);
-    
-    liveWorthInterval = setInterval(() => {
-        PythonShell.run('../GUI Scripts/get-ticker-worth.py', {args: [ticker]},  function(err, results)  {
-            if(err) throw err;
+        const worth = results[0];
+        const symbol = String.fromCharCode.apply(String, results[1].split("|"));
+        const converted = results[2];
+        const graphDate = results[3];
+        const graphValue = results[4];
+        const graphSplits = results[5];
+        const graphDividends = results[6];
 
-            const worth = results[0];
-            const converted = results[1];
+        $(".info .worth.value").html(symbol + worth);
+        $(".info .converted .value").html("€" + converted);
+        
 
-            $(".info .worth .value").html(symbol + worth);
-            $(".info .converted .value").html("€" + converted);
-        });
-    }, 1000);
+        const date = new Date();
+        const time = (date.getHours() - 1) + ":" + date.getMinutes();
+
+        const lowRange = parseInt(graphDate.split("|")[0].split(":")[0] * 60 + graphDate.split("|")[0].split(":")[1]) - 60;
+        const highRange = parseInt(graphDate.split("|").pop().split(":")[0] * 60 + graphDate.split("|").pop().split(":")[1]) + 60;
+        const current = parseInt(time.split(":")[0] * 60 + time.split(":")[1]);
+
+        const marketOpen = current >= lowRange && current <= highRange;
+        $(".status").html(`Market Status: <span class="value ${marketOpen ? "open" : "closed"}">${marketOpen ? "Open&nbsp;&nbsp;" : "Closed"}`);
+
+
+        const dayData = sortGraphData(graphDate, graphValue,graphSplits, graphDividends);
+        rangeData.set("day", dayData);
+
+        if(range === "day") {
+            chart.data = {
+                labels: dayData[0],
+                datasets: [{
+                    label: rangeLabel,
+                    borderColor: 'rgb(0, 200, 100)',
+                    data: dayData[1],
+                    backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                }, {
+                    label: "Dividends",
+                    borderColor: 'rgb(200, 200, 0)',
+                    data: dayData[2],
+                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                }, {
+                    label: "No Data",
+                    borderColor: 'rgb(200, 0, 0)',
+                    data: dayData[3],
+                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                }]
+            };
+            chart.update();
+        }
+    });
 }
 
 function loadFullGraphData(ticker) {
@@ -518,9 +582,12 @@ $(".select-range").on("click", "button", function() {
     }
 });
 
-function changeRange(range) {
+let range = "day";
+function changeRange(_range) {
     if(selectedTicker == "")
         return;
+
+    range = _range;
 
     if(rangeData.has(range)) {
         const data = rangeData.get(range);
@@ -808,6 +875,8 @@ function sigTo4(input) {
 
 //#region Automatic
 
+
+
 //#endregion
 
 //#region Log
@@ -890,7 +959,7 @@ $(".top-bar .change-balance").on("click", "button", function() {
 });
 
 $(".container").on("click", "#confirm-change-bal", function() {
-    setBal(Number($("#change-bal").val()));
+    setBal(Number(removeMoneyFormatting($("#change-bal").val())));
 
     if(activeDropdowns.has("change-bal")) {
         activeDropdowns.get("change-bal").remove();
@@ -901,12 +970,12 @@ $(".container").on("click", "#confirm-change-bal", function() {
 $(".container").on("keypress", "#change-bal", function(e) {
     const keyCode = e.keyCode || e.which;
     if(keyCode == 13) {
-        setBal(Number($("#change-bal").val()));
+        setBal(Number(removeMoneyFormatting($("#change-bal").val())));
 
-    if(activeDropdowns.has("change-bal")) {
-        activeDropdowns.get("change-bal").remove();
-        activeDropdowns.delete("change-bal");
-    }
+        if(activeDropdowns.has("change-bal")) {
+            activeDropdowns.get("change-bal").remove();
+            activeDropdowns.delete("change-bal");
+        }
     }
 });
 

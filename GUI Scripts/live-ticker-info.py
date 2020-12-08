@@ -1,47 +1,30 @@
 import sys
-import json
-import yfinance as yf
-import numpy
+from forex_python.converter import CurrencyCodes, CurrencyRates
 from datetime import datetime
-import pytz
-from forex_python.converter import CurrencyRates, CurrencyCodes
 from gui_utils import GUIUtils as Utils
+import yfinance as yf
 
-input_ticker = Utils.decrypt(sys.argv[1])
+input_ticker = sys.argv[1]
 
 ticker = yf.Ticker(input_ticker)
-
-company_name = input_ticker.replace("^", "") + "-INDEX"
-if "longName" in ticker.info and ticker.info["longName"] is not None:
-    company_name = ticker.info["longName"]
-
-print(company_name)
-
-
-# Value
 history = ticker.history(period="1d", interval="1m")
+
+rates = CurrencyRates()
+codes = CurrencyCodes()
+
 i = -1
 while i < 1000:
     if history.get("Close")[i]:
         worth = history.get("Close")[i]
         print(Utils.format_money(worth))
 
-        # Value Symbol 
-        codes = CurrencyCodes()
+        # Symbol
         print("|".join([str(ord(char)) for char in codes.get_symbol(ticker.info["currency"])]))
-
         # Converted
-        rates = CurrencyRates()
         print(Utils.format_money(rates.convert(ticker.info["currency"], "EUR", worth)))
         break
     else:
         i += 1
-
-
-# Local Time
-timezone = pytz.timezone(ticker.info["exchangeTimezoneName"])
-print(datetime.now(timezone).strftime("%d %B %Y"))
-print(datetime.now(timezone).strftime("%z").replace("0", ""))
 
 
 # Graph
@@ -67,5 +50,7 @@ print("|".join(dateArr))
 print("|".join(closeArr))
 print("|".join(splitArr))
 print("|".join(dividendsArr))
+
+
 
 sys.stdout.flush()

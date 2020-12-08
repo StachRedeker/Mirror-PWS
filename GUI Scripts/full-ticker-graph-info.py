@@ -9,36 +9,6 @@ input_ticker = Utils.decrypt(sys.argv[1])
 
 ticker = yf.Ticker(input_ticker)
 
-def formatClose(raw):
-    if str(type(raw)) == "<class 'numpy.float64'>":
-        return Utils.format_money_decimal(raw)
-    else:
-        return " "
-
-def formatSplit(raw):
-    try:
-        return str(raw)
-    except Exception:
-        return "0.0"
-
-def formatDividend(raw):
-    try:
-        return str(raw)
-    except Exception:
-        return "0.0"
-
-def formatDate(raw, period):
-    makeup = ["%b", "%d"]
-    if period == "week":
-        makeup = ["%a", "%h"]
-    elif period == "max":
-        makeup = ["%Y", "%b"]
-
-    try:
-        return datetime.utcfromtimestamp(raw.tolist()/1e9).strftime("{0}-{1}".format(makeup[0], makeup[1]))
-    except OSError:
-        return "??-??"
-
 
 
 # Week
@@ -48,13 +18,13 @@ closeArr = []
 splitArr = []
 dividendsArr = []
 for i in history.index:
-    closeArr.append(formatClose(history.get("Close")[i]))
-    splitArr.append(formatSplit(history.get("Stock Splits")[i]))
-    dividendsArr.append(formatDividend(history.get("Dividends")[i]))
+    closeArr.append(Utils.formatClose(history.get("Close")[i]))
+    splitArr.append(Utils.formatSplit(history.get("Stock Splits")[i]))
+    dividendsArr.append(Utils.formatDividend(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
-    dateArr.append(formatDate(raw, "week"))
+    dateArr.append(Utils.formatDate(raw, "week"))
 
 print("|".join(dateArr))
 print("|".join(closeArr))
@@ -70,13 +40,13 @@ closeArr = []
 splitArr = []
 dividendsArr = []
 for i in history.index:
-    closeArr.append(formatClose(history.get("Close")[i]))
-    splitArr.append(formatSplit(history.get("Stock Splits")[i]))
-    dividendsArr.append(formatDividend(history.get("Dividends")[i]))
+    closeArr.append(Utils.formatClose(history.get("Close")[i]))
+    splitArr.append(Utils.formatSplit(history.get("Stock Splits")[i]))
+    dividendsArr.append(Utils.formatDividend(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
-    dateArr.append(formatDate(raw, "month"))
+    dateArr.append(Utils.formatDate(raw, "month"))
 
 print("|".join(dateArr))
 print("|".join(closeArr))
@@ -92,13 +62,13 @@ closeArr = []
 splitArr = []
 dividendsArr = []
 for i in history.index:
-    closeArr.append(formatClose(history.get("Close")[i]))
-    splitArr.append(formatSplit(history.get("Stock Splits")[i]))
-    dividendsArr.append(formatDividend(history.get("Dividends")[i]))
+    closeArr.append(Utils.formatClose(history.get("Close")[i]))
+    splitArr.append(Utils.formatSplit(history.get("Stock Splits")[i]))
+    dividendsArr.append(Utils.formatDividend(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
-    dateArr.append(formatDate(raw, "6months"))
+    dateArr.append(Utils.formatDate(raw, "6months"))
 
 print("|".join(dateArr))
 print("|".join(closeArr))
@@ -114,13 +84,13 @@ closeArr = []
 splitArr = []
 dividendsArr = []
 for i in history.index:
-    closeArr.append(formatClose(history.get("Close")[i]))
-    splitArr.append(formatSplit(history.get("Stock Splits")[i]))
-    dividendsArr.append(formatDividend(history.get("Dividends")[i]))
+    closeArr.append(Utils.formatClose(history.get("Close")[i]))
+    splitArr.append(Utils.formatSplit(history.get("Stock Splits")[i]))
+    dividendsArr.append(Utils.formatDividend(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
-    dateArr.append(formatDate(raw, "year"))
+    dateArr.append(Utils.formatDate(raw, "year"))
 
 print("|".join(dateArr))
 print("|".join(closeArr))
@@ -136,13 +106,13 @@ closeArr = []
 splitArr = []
 dividendsArr = []
 for i in history.index:
-    closeArr.append(formatClose(history.get("Close")[i]))
-    splitArr.append(formatSplit(history.get("Stock Splits")[i]))
-    dividendsArr.append(formatDividend(history.get("Dividends")[i]))
+    closeArr.append(Utils.formatClose(history.get("Close")[i]))
+    splitArr.append(Utils.formatSplit(history.get("Stock Splits")[i]))
+    dividendsArr.append(Utils.formatDividend(history.get("Dividends")[i]))
 
 dateArr = []
 for raw in dateArrRaw:
-    dateArr.append(formatDate(raw, "max"))
+    dateArr.append(Utils.formatDate(raw, "max"))
 
 print("|".join(dateArr))
 print("|".join(closeArr))

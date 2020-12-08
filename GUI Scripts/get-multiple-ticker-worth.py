@@ -9,7 +9,7 @@ for elem in input_tickers:
     history = ticker.history(period="1d", interval="1m")
 
     i = -1
-    while True:
+    while i < 1000:
         if history.get("Close")[i]:
             print("{0}|{1}".format(elem, history.get("Close")[i]))
             break
