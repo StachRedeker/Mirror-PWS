@@ -632,6 +632,33 @@ body {
 }
 
 
+.automatic {
+    text-align: center;
+}
+
+#advice-button {
+    background-color: #094d5c;
+    color: white;
+    font-size: 18px;
+    margin: 0 auto;
+    padding: 5px 10px;
+
+    outline: none;
+    border: none;
+    border-radius: 10px;
+
+    cursor: pointer;
+}
+
+#advice-button:hover {
+    background-color: #127288;
+}
+
+#advice-button:active {
+    background-color: #249db8;
+}
+
+
 
 .log {
     height: 100%;

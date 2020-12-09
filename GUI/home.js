@@ -2,33 +2,6 @@ const { ipcRenderer } = require("electron");
 const fs = require("fs");
 let { PythonShell } = require('python-shell');
 
-/*
-PY zooi van nowa:
-local_dir = os.path.dirname(__file__)
-config_path = os.path.join(local_dir, "config-feedforward.txt")
-replay_genome(config, ---TICKER---)
-
-replay_genome geeft me weet ik veel ik wil gewoon een waardes
-blijkbaar iets in main met graph en bowa zegt dat daar x en y is? nou fijn?
-wat is nuttig wat is niet nuttig?
-is het niet sneller als ik zelf een AI schrijf?
-ik wil dood
-help
-help
-help
-zelfmoord is nabij
-en uberhaupt als wij iets van een resultaat willen is al die zooi die noah doet veel te sloom
-we hebben hier een while loop 60 regels over een grafiek met 4000 waardes hallo
-is dit uberhaupt nodig
-ik wil gewoon een waarde zo moeilijk kan het toch niet zijn kom op nou
-help
-help
-help
-ok doei ik ga andere dingen doen
-*/
-
-
-
 // TODO: integrate AI (high prio, hard)
 // TODO: live update worth if market is open (low prio, med)
 // TODO: add indicators to graph (low prio, hard)
@@ -47,6 +20,7 @@ function setBal(bal) {
 
     balance = bal;
     $(".balance .value").html(EUR.format(bal));
+    setConfig("balance", balance);
 }
 
 function addBal(amount) {
@@ -55,6 +29,7 @@ function addBal(amount) {
 
     balance += parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
+    setConfig("balance", balance);
 }
 
 function removeBal(amount) {
@@ -63,9 +38,9 @@ function removeBal(amount) {
 
     balance -= parseFloat(amount);
     $(".balance .value").html(EUR.format(balance));
+    setConfig("balance", balance);
 }
 
-setBal(0);
 //#endregion
 
 //#region Update Time
@@ -121,6 +96,17 @@ function loadConfigData() {
     });
 
     pinnedTickers.push(...getConfig("pinned", "array"));
+
+    const bal = getConfig("balance");
+    setBal(bal == null ? 0 : bal);
+
+    if(hasConfig("changeLog"))
+        changeLog = getConfig("changeLog", "array");
+
+    if(hasConfig("totalLog"))
+        totalLog = getConfig("totalLog", "map");
+
+    updateChangeLog();
 }
 
 function setConfig(key, data) {
@@ -131,9 +117,15 @@ function setConfig(key, data) {
 function getConfig(key, type) {
     if(type === "array") {
         return configData[key] == null ? [] : configData[key];
+    } else if(type === "map") {
+        return configData[key] == null ? new Map() : new Map(configData[key]);
     } else {
         return configData[key];
     }
+}
+
+function hasConfig(key) {
+    return key in configData;
 }
 //#endregion
 
@@ -324,6 +316,45 @@ $(".container").on("click", ".dropdown-more-button", function() {
 });
 //#endregion
 
+//#region Indicators
+let indicator = "";
+$("#SMA").on("click", function() {
+    indicator = "SMA";
+});
+
+$("#EMA").on("click", function() {
+    indicator = "EMA";
+});
+
+function calcIndicator(indicator, data) {
+    const values = [];
+    data[1].forEach(value => {
+        values.push(parseFloat(value));
+    });
+    data[2].forEach((value, i) => {
+        if(values[i] == null && value != null)
+            values[i] = parseFloat(value);
+    });
+
+    const output = [];
+    values.forEach((value, i) => {
+        if(indicator === "SMA") {
+            let total = 0;
+            let j = i;
+            while (j > 0 && j > (i - 50)) {
+                total += values[j];
+                j--;
+            }
+
+            output.push(Math.round(total / Math.min(i, 50) * 100) / 100);
+        } else if(indicator === "EMA") {
+            
+        }
+    });
+    return output;
+}
+//#endregion
+
 //#region Info/Graph Section
 let timeOffset;
 let detailedGraphFetch;
@@ -413,25 +444,52 @@ function updateInfo() {
                     </div>
                 </div>`);
             
-            chart.data = {
-                labels: dayData[0],
-                datasets: [{
-                    label: rangeLabel,
-                    borderColor: 'rgb(0, 200, 100)',
-                    data: dayData[1],
-                    backgroundColor: 'rgba(0, 100, 0, 0.1)'
-                }, {
-                    label: "Dividends",
-                    borderColor: 'rgb(200, 200, 0)',
-                    data: dayData[2],
-                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
-                }, {
-                    label: "No Data",
-                    borderColor: 'rgb(200, 0, 0)',
-                    data: dayData[3],
-                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
-                }]
-            };
+            if(indicator != "") {
+                chart.data = {
+                    labels: dayData[0],
+                    datasets: [{
+                        label: rangeLabel,
+                        borderColor: 'rgb(0, 200, 100)',
+                        data: dayData[1],
+                        backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                    }, {
+                        label: "Dividends",
+                        borderColor: 'rgb(200, 200, 0)',
+                        data: dayData[2],
+                        backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                    }, {
+                        label: "No Data",
+                        borderColor: 'rgb(200, 0, 0)',
+                        data: dayData[3],
+                        backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                    }, {
+                        label: indicator,
+                        borderColor: 'rgb(0, 50, 200)',
+                        data: calcIndicator(indicator, dayData),
+                        backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }]
+                };
+            } else {
+                chart.data = {
+                    labels: dayData[0],
+                    datasets: [{
+                        label: rangeLabel,
+                        borderColor: 'rgb(0, 200, 100)',
+                        data: dayData[1],
+                        backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                    }, {
+                        label: "Dividends",
+                        borderColor: 'rgb(200, 200, 0)',
+                        data: dayData[2],
+                        backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                    }, {
+                        label: "No Data",
+                        borderColor: 'rgb(200, 0, 0)',
+                        data: dayData[3],
+                        backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                    }]
+                };
+            }
             chart.update();
 
             loadFullGraphData(ticker);
@@ -472,7 +530,7 @@ function updateLiveInfo(ticker) {
         $(".status").html(`Market Status: <span class="value ${marketOpen ? "open" : "closed"}">${marketOpen ? "Open&nbsp;&nbsp;" : "Closed"}`);
 
 
-        const dayData = sortGraphData(graphDate, graphValue,graphSplits, graphDividends);
+        const dayData = sortGraphData(graphDate, graphValue, graphSplits, graphDividends);
         rangeData.set("day", dayData);
 
         if(range === "day") {
@@ -493,10 +551,35 @@ function updateLiveInfo(ticker) {
                     borderColor: 'rgb(200, 0, 0)',
                     data: dayData[3],
                     backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                }, {
+                    label: indicator,
+                    borderColor: 'rgb(0, 50, 200)',
+                    data: calcIndicator(indicator, dayData),
+                    backgroundColor: 'rgba(0, 0, 0, 0)'
                 }]
             };
-            chart.update();
+        } else {
+            chart.data = {
+                labels: dayData[0],
+                datasets: [{
+                    label: rangeLabel,
+                    borderColor: 'rgb(0, 200, 100)',
+                    data: dayData[1],
+                    backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                }, {
+                    label: "Dividends",
+                    borderColor: 'rgb(200, 200, 0)',
+                    data: dayData[2],
+                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                }, {
+                    label: "No Data",
+                    borderColor: 'rgb(200, 0, 0)',
+                    data: dayData[3],
+                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                }]
+            };
         }
+        chart.update();
     });
 }
 
@@ -512,7 +595,7 @@ function loadFullGraphData(ticker) {
         for (let i = 0; i < results.length; i += 4) {
             const range = ranges[i / 4];
 
-            rangeData.set(range,  sortGraphData(results[i], results[i + 1], results[i + 2], results[i + 3]));
+            rangeData.set(range, sortGraphData(results[i], results[i + 1], results[i + 2], results[i + 3]));
         }
     });
 }
@@ -591,26 +674,52 @@ function changeRange(_range) {
 
     if(rangeData.has(range)) {
         const data = rangeData.get(range);
-
-        chart.data = {
-            labels: data[0],
-            datasets: [{
-                label: rangeLabel,
-                borderColor: 'rgb(0, 200, 100)',
-                data: data[1],
-                backgroundColor: 'rgba(0, 100, 0, 0.1)'
-            }, {
-                label: "Dividends",
-                borderColor: 'rgb(200, 200, 0)',
-                data: data[2],
-                backgroundColor: 'rgba(200, 200, 0, 0.2)'
-            }, {
-                label: "No Data",
-                borderColor: 'rgb(200, 0, 0)',
-                data: data[3],
-                backgroundColor: 'rgba(200, 0, 0, 0.2)'
-            }]
-        };
+        if(indicator != "") {
+            chart.data = {
+                labels: data[0],
+                datasets: [{
+                    label: rangeLabel,
+                    borderColor: 'rgb(0, 200, 100)',
+                    data: data[1],
+                    backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                }, {
+                    label: "Dividends",
+                    borderColor: 'rgb(200, 200, 0)',
+                    data: data[2],
+                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                }, {
+                    label: "No Data",
+                    borderColor: 'rgb(200, 0, 0)',
+                    data: data[3],
+                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                }, {
+                    label: indicator,
+                    borderColor: 'rgb(0, 50, 200)',
+                    data: calcIndicator(indicator, data),
+                    backgroundColor: 'rgba(0, 0, 0, 0)'
+                }]
+            };
+        } else {
+            chart.data = {
+                labels: data[0],
+                datasets: [{
+                    label: rangeLabel,
+                    borderColor: 'rgb(0, 200, 100)',
+                    data: data[1],
+                    backgroundColor: 'rgba(0, 100, 0, 0.1)'
+                }, {
+                    label: "Dividends",
+                    borderColor: 'rgb(200, 200, 0)',
+                    data: data[2],
+                    backgroundColor: 'rgba(200, 200, 0, 0.2)'
+                }, {
+                    label: "No Data",
+                    borderColor: 'rgb(200, 0, 0)',
+                    data: data[3],
+                    backgroundColor: 'rgba(200, 0, 0, 0.2)'
+                }]
+            };
+        }
         chart.update();
     } else {
         showLoading();
@@ -874,24 +983,30 @@ function sigTo4(input) {
 //#endregion
 
 //#region Automatic
+$("#testbtn").on("click", function() {
+    PythonShell.run('../GUI Scripts/get-AI-advice.py', {args: ["TSLA"]}, function(err, results) {
+        if (err) throw err;
 
-
-
+        console.log(results);
+    });
+});
 //#endregion
 
 //#region Log
 let mode = "change";
 
-const changeLog = [];
+let changeLog = [];
 function addLog(text) {
     changeLog.push(text);
     if(mode === "change") {
         $("#log-text").prepend(text);
         updateChangeLog();
     }
+
+    setConfig("changeLog", changeLog);
 }
 
-const totalLog = new Map();
+let totalLog = new Map();
 function setTotal(key, value) {
     if(value == null)
         totalLog.delete(key);
@@ -900,6 +1015,8 @@ function setTotal(key, value) {
 
     if(mode === "total")
         updateTotalLog();
+
+    setConfig("totalLog", [...totalLog]);
 }
 
 function updateChangeLog() {
@@ -1052,3 +1169,4 @@ function hideLoading() {
     }
 }
 //#endregion
+
