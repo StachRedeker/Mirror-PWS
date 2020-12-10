@@ -320,6 +320,7 @@ $(".container").on("click", ".dropdown-more-button", function() {
 let indicator = "";
 $("#SMA").on("click", function() {
     indicator = "SMA";
+    $(this).addClass("active");
 });
 
 $("#EMA").on("click", function() {
@@ -348,6 +349,8 @@ function calcIndicator(indicator, data) {
 
             output.push(Math.round(total / Math.min(i, 50) * 100) / 100);
         } else if(indicator === "EMA") {
+            
+        } else if(indicator === "MACD") {
             
         }
     });
