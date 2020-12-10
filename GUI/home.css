@@ -609,7 +609,7 @@ body {
     cursor: pointer;
 }
 
-#indicator-select:hover, #indicator-dropdown button:hover {
+#indicator-select:hover, #indicator-dropdown button:hover, #indicator-dropdown button.active {
     background-color: #127288;
 }
 
@@ -626,7 +626,6 @@ body {
     text-align: center;
     width: max-content;
 
-    background-color: rgba(0, 0, 0, 0.5);
     border-radius: 10px;
     padding: 5px
 }
@@ -634,6 +633,11 @@ body {
 
 .automatic {
     text-align: center;
+}
+
+.automatic p {
+    color: white;
+    font-size: 18px;
 }
 
 #advice-button {
