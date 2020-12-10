@@ -1,0 +1,1 @@
+Moeten we 1 concrete AI-winnaar hebben, of zouden 2 'versies' ook goed zijn? De resultaten voor bearish markten zijn significant beter bij winner.nodeduct.pkl, en de rest is allemaal beter bij winner.pkl
