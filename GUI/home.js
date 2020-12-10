@@ -350,7 +350,9 @@ function calcIndicator(indicator, data) {
             output.push(Math.round(total / Math.min(i, 50) * 100) / 100);
         } else if(indicator === "EMA") {
             
-        } else if(indicator === "")
+        } else if(indicator === "MACD") {
+            
+        }
     });
     return output;
 }
